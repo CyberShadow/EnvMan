@@ -1,0 +1,8 @@
+#include "farversion.hpp"
+
+#define PLUGIN_BUILD 1
+#define PLUGIN_DESC "Environment Manager Plugin for FAR Manager"
+#define PLUGIN_NAME "EnvMan"
+#define PLUGIN_FILENAME "EnvMan.dll"
+
+genericpluginrc(PLUGIN_BUILD, PLUGIN_DESC, PLUGIN_NAME, PLUGIN_FILENAME)
