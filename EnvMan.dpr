@@ -230,11 +230,6 @@ end;
 
 // ****************************************************************************
 
-procedure ShowMessage(S: String); // KILLME
-begin
-  FARAPI.Message(FARAPI.ModuleNumber, FMSG_ALLINONE or FMSG_MB_OK, nil, PPCharArray(PChar('ShowMessage'+#10+S)), 2, 0);
-end;
-
 function GetMsg(MsgId: TMessage): PChar;
 begin
   Result := FARAPI.GetMsg(FARAPI.ModuleNumber, Integer(MsgId));
@@ -440,7 +435,6 @@ begin
       Items[I].Separator := {False}Entries[I].Name='-';
     end;
     Current := FARAPI.Menu(FARAPI.ModuleNumber, -1, -1, 0, FMENU_AUTOHIGHLIGHT or FMENU_WRAPMODE, 'Environment Manager', '+,-,Space,Ins,Del,F4,F5,Ctrl-Up,Ctrl-Down', nil, @BreakKeys, @BreakCode, @Items[0], Length(Items));
-    //ShowMessage('Current='+IntToStr(Current)+',BreakCode='+IntToStr(BreakCode));
     if (Current=-1) and (BreakCode=-1) then
       Break;
     case BreakCode of
@@ -548,6 +542,5 @@ exports
   OpenPlugin;
 
 begin
-  Randomize; // KILLME
   InitialEnvironment := ReadEnvironment;
 end.
