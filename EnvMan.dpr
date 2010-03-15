@@ -353,33 +353,33 @@ var
   Entries: TEntryDynArray;
   Current: Integer;
 
-procedure InsertEntry(Index: Integer; var Entry: TEntry);
-var
-  I: Integer;
-begin
-  for I:=High(Entries) downto Index do
-    MoveEntry(I, I+1);
-  SaveEntry(Index, Entry);
-end;
+  procedure InsertEntry(Index: Integer; var Entry: TEntry);
+  var
+    I: Integer;
+  begin
+    for I:=High(Entries) downto Index do
+      MoveEntry(I, I+1);
+    SaveEntry(Index, Entry);
+  end;
 
-procedure DeleteEntry(Index: Integer);
-var
-  Key: HKEY;
-  I: Integer;
-begin
-  Key := OpenPluginKey;
-  RegDeleteKey(Key, PChar(IntToStr(Index)));
-  RegCloseKey(Key);
-  for I:=Index+1 to High(Entries) do
-    MoveEntry(I, I-1);
-end;
+  procedure DeleteEntry(Index: Integer);
+  var
+    Key: HKEY;
+    I: Integer;
+  begin
+    Key := OpenPluginKey;
+    RegDeleteKey(Key, PChar(IntToStr(Index)));
+    RegCloseKey(Key);
+    for I:=Index+1 to High(Entries) do
+      MoveEntry(I, I-1);
+  end;
 
-procedure MoveCurrent(Direction: Integer);
-begin
-  repeat
-    Inc(Current, Direction);
-  until (Current<0) or (Current>High(Entries)) or (Entries[Current].Name<>'-');
-end;
+  procedure MoveCurrent(Direction: Integer);
+  begin
+    repeat
+      Inc(Current, Direction);
+    until (Current<0) or (Current>High(Entries)) or (Entries[Current].Name<>'-');
+  end;
 
 var
   Entry: TEntry;
