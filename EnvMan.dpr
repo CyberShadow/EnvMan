@@ -11,6 +11,7 @@ library EnvMan;
   * Unicode version?
   * help file?
   * don't use undocumented RegRenameKey API
+  * better error checking?
 }
 
 uses Windows, Types, Plugin;
@@ -23,7 +24,7 @@ var
   RegKey: String;
   InitialEnvironment: TStringDynArray;
 
-function RegRenameKey(Key: HKEY; hz: Pointer; NewName: PWideChar): HRESULT; stdcall; external 'advapi32.dll';
+function RegRenameKey(Key: HKEY; hz: Pointer; NewName: PWideChar): HRESULT; stdcall; external 'advapi32.dll'; // undocumented, used by RegEdit
 
 // ****************************************************************************
 
@@ -66,6 +67,7 @@ begin
   Move(S[1], Buf^, Length(S));
 end;
 
+// To avoid pulling in heavy SysUtils unit
 function IntToStr(I: Integer): String;
 begin
   Str(I, Result);
@@ -76,7 +78,7 @@ var
   R: Integer;
   Size: Cardinal;
 begin
-  Result := 'x'; // hack
+  Result := 'x'; // hack for @Result[1]
   Size := 0;
   R := RegQueryValueEx(Key, Name, nil, nil, @Result[1], @Size);
   if R=ERROR_MORE_DATA then
@@ -93,7 +95,7 @@ var
   Size: Cardinal;
 begin
   Result := 0;
-  Size := 4;
+  Size := SizeOf(Result);
   RegQueryValueEx(Key, Name, nil, nil, @Result, @Size);
 end;
 
@@ -104,7 +106,7 @@ end;
 
 procedure RegSetInt(Key: HKEY; Name: PChar; Value: Integer);
 begin
-  RegSetValueEx(Key, Name, 0, REG_DWORD, @Value, 4);
+  RegSetValueEx(Key, Name, 0, REG_DWORD, @Value, SizeOf(Value));
 end;
 
 function OpenPluginKey: HKEY;
@@ -221,6 +223,7 @@ begin
   for I:=0 to High(InitialEnvironment) do
     ApplyNameValuePair(InitialEnvironment[I]);
 
+  // Apply entries
   Entries := ReadEntries;
   for I:=0 to High(Entries) do
     if Entries[I].Enabled then
