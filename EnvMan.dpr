@@ -338,7 +338,7 @@ begin
   CopyStrToBuf(GetMsg(MCancel), Items[5+Rows].Data.Data, SizeOf(Items[5+Rows].Data.Data));
 
   Result := False;
-  I := FARAPI.Dialog(FARAPI.ModuleNumber, -1, -1, W, H, nil, @Items[0], Length(Items));
+  I := FARAPI.Dialog(FARAPI.ModuleNumber, -1, -1, W, H, 'Editor', @Items[0], Length(Items));
   if I<>4+Rows then
     Exit;
   
@@ -437,7 +437,7 @@ begin
       Items[I].Checked := Entries[I].Enabled;
       Items[I].Separator := {False}Entries[I].Name='-';
     end;
-    Current := FARAPI.Menu(FARAPI.ModuleNumber, -1, -1, 0, FMENU_AUTOHIGHLIGHT or FMENU_WRAPMODE, 'Environment Manager', '+,-,Space,Ins,Del,F4,F5,Ctrl-Up,Ctrl-Down', nil, @BreakKeys, @BreakCode, @Items[0], Length(Items));
+    Current := FARAPI.Menu(FARAPI.ModuleNumber, -1, -1, 0, FMENU_AUTOHIGHLIGHT or FMENU_WRAPMODE, 'Environment Manager', '+,-,Space,Ins,Del,F4,F5,Ctrl-Up,Ctrl-Down', 'MainMenu', @BreakKeys, @BreakCode, @Items[0], Length(Items));
     if (Current=-1) and (BreakCode=-1) then
       Break;
     case BreakCode of
