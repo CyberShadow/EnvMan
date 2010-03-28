@@ -10,7 +10,7 @@ library EnvMan;
   * ANSI/OEM compatibility?
   * Unicode version?
   * help file?
-  * don't use undocumented RegRenameKey API
+  * don't use undocumented NtRenameKey API
   * better error checking?
 }
 
@@ -24,7 +24,26 @@ var
   RegKey: String;
   InitialEnvironment: TStringDynArray;
 
-function RegRenameKey(Key: HKEY; hz: Pointer; NewName: PWideChar): HRESULT; stdcall; external 'advapi32.dll'; // undocumented, used by RegEdit
+type
+  UNICODE_STRING = packed record
+    Length, MaximumLength: Word;
+    Buffer: PWideChar;
+  end;
+  PUNICODE_STRING = ^UNICODE_STRING;
+  NTSTATUS = Cardinal;
+
+//function RegRenameKey(Key: HKEY; hz: Pointer; NewName: PWideChar): HRESULT; stdcall; external 'advapi32.dll'; // undocumented, used by RegEdit
+function RtlInitUnicodeStringEx(DestinationString: PUNICODE_STRING; SourceString: LPCWSTR): NTSTATUS; stdcall; external 'ntdll.dll';
+function NtRenameKey(Key: HKEY; NewNawe: PUNICODE_STRING): NTSTATUS; stdcall; external 'ntdll.dll';
+function RtlNtStatusToDosError(Status: NTSTATUS): ULONG; stdcall; external 'ntdll.dll';
+
+function RegRenameKey(Key: HKEY; NewName: PWideChar): HRESULT;
+var
+  US: UNICODE_STRING;
+begin
+  RtlInitUnicodeStringEx(@US, NewName);
+  Result := RtlNtStatusToDosError(NtRenameKey(Key, @US));
+end;
 
 // ****************************************************************************
 
@@ -126,7 +145,7 @@ var
   Key: HKEY;
 begin
   Key := OpenEntryKey(I);
-  RegRenameKey(Key, nil, PWideChar(WideString(IntToStr(J))));
+  RegRenameKey(Key, PWideChar(WideString(IntToStr(J))));
   RegCloseKey(Key);
 end;
 
