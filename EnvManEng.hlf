@@ -14,38 +14,38 @@ settings, and quickly enable or disable these sets at any time. This
 applies not only to PATH, but any other environment variables as well.
     
     The plugin saves the state of the environment when FAR Manager is 
-started. Then, it applies each enabled set of settings, one on top of
-the other. The user can "chain" sets by including the old value of the
-variable in the new value, for example: #PATH=%PATH%;C:\ExamplePath#
+started. Then, it applies each enabled entry, one on top of the other. 
+The user can "chain" entries by including the old value of the variable 
+in the new value, for example: #PATH=%PATH%;C:\ExamplePath#
     
     To configure and use the plugin, open it from FAR's 
 ~"Plugin commands"~@:PluginCommands@ menu. This will bring up the 
 ~settings list~@MainMenu@.
 
 @MainMenu
-$ #EnvMan sets list#
+$ #EnvMan entry list#
 
     This menu allows enabling, disabling, and editing the list of 
 available sets of environment variable settings. 
 
     The following commands are available:
 
- #+/-/Space#    - enable, disable or toggle the selected set.
- #Ins#          - inserts a new set before the cursor position.
- #Del#          - deletes the selected set.
- #F4#           - edits the selected set.
- #F5#           - copies the selected set.
+ #+/-/Space#    - enable, disable or toggle the selected entry.
+ #Ins#          - inserts a new entry before the cursor position.
+ #Del#          - deletes the selected entry.
+ #F4#           - edits the selected entry.
+ #F5#           - copies the selected entry.
  #Ctrl-Up/Down# - moves the current set up or down.
 
     The commands #Ins#, #F4# and #F5# will ~open a dialog~@Editor@ allowing 
-to edit the set's details. For #Ins# and #F5#, the new item will be inserted
-if the changes in the dialog are accepted (the dialog is closed by selecting
-#OK#).
+to edit the entry's details. For #Ins# and #F5#, the new entry will be 
+inserted if the changes in the dialog are accepted (the dialog is closed by 
+selecting #OK#).
 
-    Separators can be created by moving an item past the upper or lower
-edge of the list. Similarly, separators can be removed by moving items 
+    Separators can be created by moving an entry past the upper or lower
+edge of the list. Similarly, separators can be removed by moving entries
 in the opposite direction - separators will disappear when there are no
-sets between them and the edge of the list.
+entries between them and the edge of the list.
 
     Changes are applied to the environment as soon as the menu is closed.
 If you edited the settings in another FAR instance and would like to apply
@@ -54,11 +54,11 @@ them to the current instance, simply open and close the sets list.
 @Editor
 $ #EnvMan editor dialog#
 
-    This dialog allows editing one environment variable configuration set.
+    This dialog allows editing one environment variable configuration entry.
 
     The #Name# and #Enabled# fields are self-explanatory. The multi-line
 edit box below them defines the changes to the environment performed by
-the current set.
+the current entry.
 
     The format is similar to the format of the standard #set# command
 (bar the option switches). Each line must be in the format #NAME#=#Value#.
