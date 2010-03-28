@@ -10,7 +10,6 @@ library EnvMan;
   * ANSI/OEM compatibility?
   * Unicode version?
   * help file?
-  * don't use undocumented NtRenameKey API
   * better error checking?
 }
 
@@ -23,27 +22,6 @@ var
   FARAPI: TPluginStartupInfo;
   RegKey: String;
   InitialEnvironment: TStringDynArray;
-
-type
-  UNICODE_STRING = packed record
-    Length, MaximumLength: Word;
-    Buffer: PWideChar;
-  end;
-  PUNICODE_STRING = ^UNICODE_STRING;
-  NTSTATUS = Cardinal;
-
-//function RegRenameKey(Key: HKEY; hz: Pointer; NewName: PWideChar): HRESULT; stdcall; external 'advapi32.dll'; // undocumented, used by RegEdit
-function RtlInitUnicodeStringEx(DestinationString: PUNICODE_STRING; SourceString: LPCWSTR): NTSTATUS; stdcall; external 'ntdll.dll';
-function NtRenameKey(Key: HKEY; NewNawe: PUNICODE_STRING): NTSTATUS; stdcall; external 'ntdll.dll';
-function RtlNtStatusToDosError(Status: NTSTATUS): ULONG; stdcall; external 'ntdll.dll';
-
-function RegRenameKey(Key: HKEY; NewName: PWideChar): HRESULT;
-var
-  US: UNICODE_STRING;
-begin
-  RtlInitUnicodeStringEx(@US, NewName);
-  Result := RtlNtStatusToDosError(NtRenameKey(Key, @US));
-end;
 
 // ****************************************************************************
 
@@ -138,15 +116,6 @@ function OpenEntryKey(Index: Integer): HKEY;
 begin
   Result := 0;
   RegCreateKeyEx(HKEY_CURRENT_USER, PChar(RegKey+'\'+IntToStr(Index)), 0, nil, 0, KEY_ALL_ACCESS, nil, Result, nil);
-end;
-
-procedure MoveEntry(I, J: Integer);
-var
-  Key: HKEY;
-begin
-  Key := OpenEntryKey(I);
-  RegRenameKey(Key, PWideChar(WideString(IntToStr(J))));
-  RegCloseKey(Key);
 end;
 
 function GetName(S: String): String;
@@ -380,7 +349,7 @@ var
     I: Integer;
   begin
     for I:=High(Entries) downto Index do
-      MoveEntry(I, I+1);
+      SaveEntry(I+1, Entries[I]);
     SaveEntry(Index, Entry);
   end;
 
@@ -389,11 +358,11 @@ var
     Key: HKEY;
     I: Integer;
   begin
-    Key := OpenPluginKey;
-    RegDeleteKey(Key, PChar(IntToStr(Index)));
-    RegCloseKey(Key);
     for I:=Index+1 to High(Entries) do
-      MoveEntry(I, I-1);
+      SaveEntry(I-1, Entries[I]);
+    Key := OpenPluginKey;
+    RegDeleteKey(Key, PChar(IntToStr(High(Entries))));
+    RegCloseKey(Key);
   end;
 
   procedure MoveCurrent(Direction: Integer);
@@ -515,34 +484,34 @@ begin
             InsertEntry(Current+1, Entry);
         end;
       7: // VK_CTRLUP
-      begin
         if Current=0 then // create separator
         begin
           Entry.Name := '-';
           Entry.Vars := nil;
           Entry.Enabled := False;
-          InsertEntry(0, Entry);
-          Inc(Current);
+          InsertEntry(1, Entry);
+        end
+        else
+        begin
+          SaveEntry(Current, Entries[Current-1]);
+          SaveEntry(Current-1, Entries[Current]);
+          Dec(Current);
         end;
-        MoveEntry(Current, -1);
-        MoveEntry(Current-1, Current);
-        MoveEntry(-1, Current-1);
-        Dec(Current);
-      end;
       8: // VK_CTRLDOWN
-      begin
         if Current=High(Entries) then // create separator
         begin
           Entry.Name := '-';
           Entry.Vars := nil;
           Entry.Enabled := False;
-          SaveEntry(Current+1, Entry);
+          InsertEntry(Current, Entry);
+          Inc(Current);
+        end
+        else
+        begin
+          SaveEntry(Current, Entries[Current+1]);
+          SaveEntry(Current+1, Entries[Current]);
+          Inc(Current);
         end;
-        MoveEntry(Current, -1);
-        MoveEntry(Current+1, Current);
-        MoveEntry(-1, Current+1);
-        Inc(Current);
-      end;
       else // VK_RETURN / hotkey
         if Current >= 0 then
         begin
