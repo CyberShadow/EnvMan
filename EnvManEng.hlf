@@ -8,25 +8,25 @@ $ #EnvMan#
 environment variables. It is especially useful for people who use several
 toolchains with program name conflicts, or different versions of the same
 command-line software packages.
-    
+
     The plugin allows users to pre-configure sets of environment variable
-settings, and quickly enable or disable these sets at any time. This 
+settings, and quickly enable or disable these sets at any time. This
 applies not only to PATH, but any other environment variables as well.
-    
-    The plugin saves the state of the environment when FAR Manager is 
-started. Then, it applies each enabled entry, one on top of the other. 
-The user can "chain" entries by including the old value of the variable 
+
+    The plugin saves the state of the environment when FAR Manager is
+started. Then, it applies each enabled entry, one on top of the other.
+The user can "chain" entries by including the old value of the variable
 in the new value, for example: #PATH=%PATH%;C:\ExamplePath#
-    
-    To configure and use the plugin, open it from FAR's 
-~"Plugin commands"~@:PluginCommands@ menu. This will bring up the 
+
+    To configure and use the plugin, open it from FAR's
+~"Plugin commands"~@:PluginCommands@ menu. This will bring up the
 ~settings list~@MainMenu@.
 
 @MainMenu
 $ #EnvMan entry list#
 
-    This menu allows enabling, disabling, and editing the list of 
-available sets of environment variable settings. 
+    This menu allows enabling, disabling, and editing the list of
+available sets of environment variable settings.
 
     The following commands are available:
 
@@ -37,9 +37,9 @@ available sets of environment variable settings.
  #F5#           - copies the selected entry.
  #Ctrl-Up/Down# - moves the current set up or down.
 
-    The commands #Ins#, #F4# and #F5# will ~open a dialog~@Editor@ allowing 
-to edit the entry's details. For #Ins# and #F5#, the new entry will be 
-inserted if the changes in the dialog are accepted (the dialog is closed by 
+    The commands #Ins#, #F4# and #F5# will ~open a dialog~@Editor@ allowing
+to edit the entry's details. For #Ins# and #F5#, the new entry will be
+inserted if the changes in the dialog are accepted (the dialog is closed by
 selecting #OK#).
 
     Separators can be created by moving an entry past the upper or lower

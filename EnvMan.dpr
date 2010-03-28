@@ -28,7 +28,7 @@ function RegRenameKey(Key: HKEY; hz: Pointer; NewName: PWideChar): HRESULT; stdc
 
 // ****************************************************************************
 
-// Convert a zero-terminated string sequence (which itself is 
+// Convert a zero-terminated string sequence (which itself is
 // doubly-zero-terminated) to a TStringDynArray.
 function StringsToArray(P: PChar): TStringDynArray;
 var
@@ -218,7 +218,7 @@ begin
   Env := ReadEnvironment;
   for I:=0 to High(Env) do
     SetEnvironmentVariable(PChar(GetName(Env[I])), nil);
-  
+
   // Reset the environment to the initial state
   for I:=0 to High(InitialEnvironment) do
     ApplyNameValuePair(InitialEnvironment[I]);
@@ -280,14 +280,14 @@ var
   I: Integer;
 begin
   FillChar(Items, SizeOf(Items), 0);
-  
+
   Items[0].ItemType := DI_DOUBLEBOX;
   Items[0].X1 := 3;
   Items[0].Y1 := 1;
   Items[0].X2 := W-1-3;
   Items[0].Y2 := H-1-1;
   CopyStrToBuf(GetMsg(Caption), Items[0].Data.Data, SizeOf(Items[0].Data.Data));
-  
+
   Items[1].ItemType := DI_EDIT;
   Items[1].X1 := 11;
   Items[1].Y1 := 2;
@@ -341,7 +341,7 @@ begin
   I := FARAPI.Dialog(FARAPI.ModuleNumber, -1, -1, W, H, 'Editor', @Items[0], Length(Items));
   if I<>4+Rows then
     Exit;
-  
+
   SetLength(Entry.Vars, 1);
   Entry.Name := PChar(@Items[1].Data.Data[0]);
   Entry.Enabled := Items[2].Param.Selected;
