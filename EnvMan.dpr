@@ -283,6 +283,8 @@ begin
   Items[1].Y2 := 2;
   Items[1].Param.History := 'EnvVarsName';
   Items[1].Flags := DIF_HISTORY;
+  if Entry.Name='' then
+    Items[1].Focus := 1;
   CopyStrToBuf(Entry.Name, Items[1].Data.Data, SizeOf(Items[1].Data.Data));
 
   Items[2].ItemType := DI_CHECKBOX;
@@ -307,7 +309,7 @@ begin
     Items[4+I].X2 := W-1-5;
     Items[4+I].Y2 := 4+I;
     Items[4+I].Flags := DIF_EDITOR;
-    if I=0 then
+    if (I=0) and (Entry.Name<>'') then
       Items[4+I].Focus := 1;
     if I<Length(Entry.Vars) then
       CopyStrToBuf(Entry.Vars[I], Items[4+I].Data.Data, SizeOf(Items[4+I].Data.Data));
