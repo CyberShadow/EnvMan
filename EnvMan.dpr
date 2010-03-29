@@ -7,7 +7,6 @@ library EnvMan;
   TODO:
   * don't overwrite unmanaged variables
   * allow escaping % in strings
-  * ANSI/OEM compatibility?
   * Unicode version?
   * help file?
   * better error checking?
@@ -196,6 +195,12 @@ begin
   end;
 end;
 
+function OemToCharStr(S: String): String;
+begin
+  SetLength(Result, Length(S));
+  OemToChar(PChar(S), @Result[1]);
+end;
+
 procedure Update;
 var
   Entries: TEntryDynArray;
@@ -216,7 +221,7 @@ begin
   for I:=0 to High(Entries) do
     if Entries[I].Enabled then
       for J:=0 to High(Entries[I].Vars) do
-        ApplyNameValuePair(ExpandEnv(Entries[I].Vars[J]));
+        ApplyNameValuePair(ExpandEnv(OemToCharStr(Entries[I].Vars[J])));
 end;
 
 // ****************************************************************************
