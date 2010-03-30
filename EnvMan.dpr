@@ -151,6 +151,9 @@ begin
     if R<>ERROR_SUCCESS then
       Result := '';
   end;
+  {$IFNDEF UNICODE}
+  CharToOem(@Result[1], @Result[1]);
+  {$ENDIF}
 end;
 
 function RegGetInt(Key: HKEY; Name: PFarChar): Integer;
@@ -164,6 +167,9 @@ end;
 
 procedure RegSetString(Key: HKEY; Name: PFarChar; Value: FarString; RegType: Cardinal);
 begin
+  {$IFNDEF UNICODE}
+  OemToChar(@Value[1], @Value[1]);
+  {$ENDIF}
   RegSetValueExF(Key, Name, 0, RegType, @Value[1], Length(Value) * SizeOf(FarChar));
 end;
 
