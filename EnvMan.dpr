@@ -356,17 +356,14 @@ var
   Handle: THandle;
 {$ENDIF}
   
-  procedure SetupData(Index: Integer; InitialData: FarString; BufSize: Integer = -1);
+  procedure SetupData(Index: Integer; InitialData: FarString);
   begin
     {$IFNDEF UNICODE}
     CopyStrToBuf(InitialData, Items[Index].Data.Data, SizeOf(Items[Index].Data.Data));
     {$ELSE}
-    if BufSize=-1 then
-      BufSize := Length(InitialData)+1;
-    SetLength(Data[Index], BufSize);
-    CopyStrToBuf(InitialData, @Data[Index][1], BufSize);
+    Data[Index] := InitialData;
     Items[Index].PtrData := @Data[Index][1];
-    Items[Index].MaxLen := BufSize;
+    Items[Index].MaxLen := 0;
     {$ENDIF}
   end;
 
@@ -375,7 +372,7 @@ var
     {$IFNDEF UNICODE}
     Result := PFarChar(@Items[Index].Data.Data[0])
     {$ELSE}
-    Result := PFarChar(@Data[Index][1])
+    Result := PFarChar(FARAPI.SendDlgMessage(Handle, DM_GETCONSTTEXTPTR, Index, 0));
     {$ENDIF}
   end;
 
@@ -398,7 +395,7 @@ begin
   Items[1].Flags := DIF_HISTORY;
   if Entry.Name='' then
     Items[1].Focus := 1;
-  SetupData(1, Entry.Name, 128);
+  SetupData(1, Entry.Name);
 
   Items[2].ItemType := DI_CHECKBOX;
   Items[2].X1 := W-1-5-10;
@@ -425,7 +422,7 @@ begin
     if (I=0) and (Entry.Name<>'') then
       Items[4+I].Focus := 1;
     if I<Length(Entry.Vars) then
-      SetupData(4+I, Entry.Vars[I], 4096);
+      SetupData(4+I, Entry.Vars[I]);
   end;
 
   Items[4+Rows].ItemType := DI_BUTTON;
@@ -445,10 +442,12 @@ begin
   {$ELSE}
   Handle := FARAPI.DialogInit(FARAPI.ModuleNumber, -1, -1, W, H, 'Editor', @Items[0], Length(Items), 0, 0, nil, 0);
   I := FARAPI.DialogRun(Handle);
-  FARAPI.DialogFree(Handle);
   {$ENDIF}
   if I<>4+Rows then
+  begin
+    {$IFDEF UNICODE}FARAPI.DialogFree(Handle);{$ENDIF}
     Exit;
+  end;
 
   SetLength(Entry.Vars, 1);
   Entry.Name := GetData(1);
@@ -456,6 +455,7 @@ begin
   SetLength(Entry.Vars, Rows);
   for I:=0 to Rows-1 do
     Entry.Vars[I] := GetData(4+I);
+  {$IFDEF UNICODE}FARAPI.DialogFree(Handle);{$ENDIF}
   Result := True;
 end;
 
