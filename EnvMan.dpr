@@ -287,11 +287,11 @@ begin
   // Entirely clear environment
   Env := ReadEnvironment;
   for I:=0 to High(Env) do
-    SetEnvironmentVariableF(PFarChar(GetName(Env[I])), nil);
+    SetEnvironmentVariableF(PFarChar(OemToCharStr(GetName(Env[I]))), nil);
 
   // Reset the environment to the initial state
   for I:=0 to High(InitialEnvironment) do
-    ApplyNameValuePair(InitialEnvironment[I]);
+    ApplyNameValuePair(OemToCharStr(InitialEnvironment[I]));
 
   // Apply entries
   Entries := ReadEntries;
