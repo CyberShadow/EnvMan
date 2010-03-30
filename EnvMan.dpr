@@ -12,23 +12,84 @@ library EnvMan;
   * better error checking?
 }
 
-uses Windows, Types, Plugin;
+uses Windows, Types, {$IFDEF UNICODE}PluginW{$ELSE}Plugin{$ENDIF};
 
 type
+{$IFNDEF UNICODE}
+  TFarChar = AnsiChar;
+  PFarChar = PAnsiChar;
+  FarString = AnsiString;
+{$ELSE}
+  FarString = WideString;
+{$ENDIF}
+  FarChar = TFarChar;
+  TFarStringDynArray = array of FarString;
+  
   TMessage = (MNewCaption, MEditCaption, MCopyCaption, MEnabled, MName, MOK, MCancel, MConfirmDeleteTitle, MConfirmDeleteText);
 
-var
-  FARAPI: TPluginStartupInfo;
-  RegKey: String;
-  InitialEnvironment: TStringDynArray;
+function PToStr(P: PFarChar): FarString; inline; // work around Delphi's strict type declarations
+begin
+{$IFNDEF UNICODE}
+  Result := PChar(P);
+{$ELSE}
+  Result := PWideChar(P);
+{$ENDIF}
+end;
+
+// ****************************************************************************
+
+function RegCreateKeyExF(hKey: HKEY; lpSubKey: PFarChar; Reserved: DWORD; lpClass: PFarChar; dwOptions: DWORD; samDesired: REGSAM; lpSecurityAttributes: PSecurityAttributes; var phkResult: HKEY; lpdwDisposition: PDWORD): Longint; inline;
+begin
+  Result := {$IFNDEF UNICODE}RegCreateKeyExA{$ELSE}RegCreateKeyExW{$ENDIF}(hKey, lpSubKey, Reserved, lpClass, dwOptions, samDesired, lpSecurityAttributes, phkResult, lpdwDisposition);
+end;
+
+function RegOpenKeyExF(hKey: HKEY; lpSubKey: PFarChar; ulOptions: DWORD; samDesired: REGSAM; var phkResult: HKEY): Longint; inline;
+begin
+  Result := {$IFNDEF UNICODE}RegOpenKeyExA{$ELSE}RegOpenKeyExW{$ENDIF}(hKey, lpSubKey, ulOptions, samDesired, phkResult);
+end;
+
+function RegQueryValueExF(hKey: HKEY; lpValueName: PFarChar; lpReserved: Pointer; lpType: PDWORD; lpData: PByte; lpcbData: PDWORD): Longint; inline;
+begin
+  Result := {$IFNDEF UNICODE}RegQueryValueExA{$ELSE}RegQueryValueExW{$ENDIF}(hKey, lpValueName, lpReserved, lpType, lpData, lpcbData);
+end;
+
+function RegSetValueExF(hKey: HKEY; lpValueName: PFarChar; Reserved: DWORD; dwType: DWORD; lpData: Pointer; cbData: DWORD): Longint; inline;
+begin
+  Result := {$IFNDEF UNICODE}RegSetValueExA{$ELSE}RegSetValueExW{$ENDIF}(hKey, lpValueName, Reserved, dwType, lpData, cbData);
+end;
+
+function RegDeleteKeyF(hKey: HKEY; lpSubKey: PFarChar): Longint; inline;
+begin
+  Result := {$IFNDEF UNICODE}RegDeleteKeyA{$ELSE}RegDeleteKeyW{$ENDIF}(hKey, lpSubKey);
+end;
+
+function SetEnvironmentVariableF(lpName, lpValue: PFarChar): BOOL; inline;
+begin
+  Result := {$IFNDEF UNICODE}SetEnvironmentVariableA{$ELSE}SetEnvironmentVariableW{$ENDIF}(lpName, lpValue);
+end;
+
+function GetEnvironmentStringsF: PFarChar; inline;
+begin
+  Result := {$IFNDEF UNICODE}GetEnvironmentStringsA{$ELSE}GetEnvironmentStringsW{$ENDIF};
+end;
+
+function FreeEnvironmentStringsF(EnvBlock: PFarChar): BOOL; inline;
+begin
+  Result := {$IFNDEF UNICODE}FreeEnvironmentStringsA{$ELSE}FreeEnvironmentStringsW{$ENDIF}(EnvBlock);
+end;
+
+function ExpandEnvironmentStringsF(lpSrc: PFarChar; lpDst: PFarChar; nSize: DWORD): DWORD; inline;
+begin
+  Result := {$IFNDEF UNICODE}ExpandEnvironmentStringsA{$ELSE}ExpandEnvironmentStringsW{$ENDIF}(lpSrc, lpDst, nSize);
+end;
 
 // ****************************************************************************
 
 // Convert a zero-terminated string sequence (which itself is
 // doubly-zero-terminated) to a TStringDynArray.
-function StringsToArray(P: PChar): TStringDynArray;
+function StringsToArray(P: PFarChar): TFarStringDynArray;
 var
-  P2: PChar;
+  P2: PFarChar;
 begin
   SetLength(Result, 0);
   while P^<>#0 do
@@ -38,13 +99,13 @@ begin
       Inc(P2);
     until P2^=#0;
     SetLength(Result, Length(Result)+1);
-    Result[High(Result)] := Copy(P, 1, Cardinal(P2)-Cardinal(P)); // 32-bit only
+    Result[High(Result)] := Copy(P, 1, INT_PTR(P2)-INT_PTR(P));
     P := P2;
     Inc(P);
   end;
 end;
 
-function ArrayToStrings(A: TStringDynArray): String;
+function ArrayToStrings(A: TFarStringDynArray): FarString;
 var
   I: Integer;
 begin
@@ -55,103 +116,110 @@ begin
   Result := Result + #0;
 end;
 
-procedure CopyStrToBuf(S: String; Buf: PChar; BufSize: Integer);
+procedure CopyStrToBuf(S: FarString; Buf: PFarChar; BufSize: Integer);
 begin
   if Length(S)>BufSize-1 then
     S := Copy(S, 1, BufSize-1);
   S := S+#0;
-  Move(S[1], Buf^, Length(S));
+  Move(S[1], Buf^, Length(S) * SizeOf(FarChar));
 end;
 
 // To avoid pulling in heavy SysUtils unit
-function IntToStr(I: Integer): String;
+function IntToStr(I: Integer): FarString;
 begin
   Str(I, Result);
 end;
 
-function RegGetString(Key: HKEY; Name: PChar): String;
+// ****************************************************************************
+
+var
+  FARAPI: TPluginStartupInfo;
+  RegKey: FarString;
+  InitialEnvironment: TFarStringDynArray;
+
+function RegGetString(Key: HKEY; Name: PFarChar): FarString;
 var
   R: Integer;
   Size: Cardinal;
 begin
   Result := 'x'; // hack for @Result[1]
   Size := 0;
-  R := RegQueryValueEx(Key, Name, nil, nil, @Result[1], @Size);
+  R := RegQueryValueExF(Key, Name, nil, nil, @Result[1], @Size);
   if R=ERROR_MORE_DATA then
   begin
-    SetLength(Result, Size);
-    R := RegQueryValueEx(Key, Name, nil, nil, @Result[1], @Size);
+    SetLength(Result, Size div SizeOf(FarChar));
+    R := RegQueryValueExF(Key, Name, nil, nil, @Result[1], @Size);
     if R<>ERROR_SUCCESS then
       Result := '';
   end;
 end;
 
-function RegGetInt(Key: HKEY; Name: PChar): Integer;
+function RegGetInt(Key: HKEY; Name: PFarChar): Integer;
 var
   Size: Cardinal;
 begin
   Result := 0;
   Size := SizeOf(Result);
-  RegQueryValueEx(Key, Name, nil, nil, @Result, @Size);
+  RegQueryValueExF(Key, Name, nil, nil, @Result, @Size);
 end;
 
-procedure RegSetString(Key: HKEY; Name: PChar; Value: String; RegType: Cardinal);
+procedure RegSetString(Key: HKEY; Name: PFarChar; Value: FarString; RegType: Cardinal);
 begin
-  RegSetValueEx(Key, Name, 0, RegType, @Value[1], Length(Value));
+  RegSetValueExF(Key, Name, 0, RegType, @Value[1], Length(Value) * SizeOf(FarChar));
 end;
 
-procedure RegSetInt(Key: HKEY; Name: PChar; Value: Integer);
+procedure RegSetInt(Key: HKEY; Name: PFarChar; Value: Integer);
 begin
-  RegSetValueEx(Key, Name, 0, REG_DWORD, @Value, SizeOf(Value));
+  RegSetValueExF(Key, Name, 0, REG_DWORD, @Value, SizeOf(Value));
 end;
 
 function OpenPluginKey: HKEY;
 begin
   Result := 0;
-  RegCreateKeyEx(HKEY_CURRENT_USER, PChar(RegKey), 0, nil, 0, KEY_ALL_ACCESS, nil, Result, nil);
+  RegCreateKeyExF(HKEY_CURRENT_USER, PFarChar(RegKey), 0, nil, 0, KEY_ALL_ACCESS, nil, Result, nil);
 end;
 
 function OpenEntryKey(Index: Integer): HKEY;
 begin
   Result := 0;
-  RegCreateKeyEx(HKEY_CURRENT_USER, PChar(RegKey+'\'+IntToStr(Index)), 0, nil, 0, KEY_ALL_ACCESS, nil, Result, nil);
+  RegCreateKeyExF(HKEY_CURRENT_USER, PFarChar(RegKey+'\'+IntToStr(Index)), 0, nil, 0, KEY_ALL_ACCESS, nil, Result, nil);
 end;
 
-function GetName(S: String): String;
+function GetName(S: FarString): FarString;
 begin
   Result := Copy(S, 1, Pos('=', S)-1);
 end;
 
-procedure ApplyNameValuePair(S: String);
+procedure ApplyNameValuePair(S: FarString);
 var
   P: Integer;
 begin
   if S='' then
     Exit;
-  if S[1] in [';','#'] then
+  if (S[1]=';') or (S[1]='#') then
     Exit;
   P := Pos('=', S);
   if P=0 then Exit;
   S[P] := #0;
   if P=Length(S) then
-    SetEnvironmentVariable(@S[1], nil)
+    SetEnvironmentVariableF(@S[1], nil)
   else
-    SetEnvironmentVariable(@S[1], @S[P+1]);
+    SetEnvironmentVariableF(@S[1], @S[P+1]);
 end;
 
-function ReadEnvironment: TStringDynArray;
+function ReadEnvironment: TFarStringDynArray;
 var
-  Env: PChar;
+  Env: PFarChar;
 begin
-  Env := GetEnvironmentStrings;
+  Env := GetEnvironmentStringsF;
   Result := StringsToArray(Env);
-  FreeEnvironmentStrings(Env);
+  FreeEnvironmentStringsF(Env);
 end;
 
-function ExpandEnv(S: String): String;
+function ExpandEnv(S: FarString): FarString;
 begin
-  SetLength(Result, ExpandEnvironmentStrings(PChar(S), nil, 0));
-  ExpandEnvironmentStrings(PChar(S), @Result[1], Length(Result));
+  SetLength(Result, ExpandEnvironmentStringsF(PFarChar(S), nil, 0));
+  ExpandEnvironmentStringsF(PFarChar(S), @Result[1], Length(Result));
   SetLength(Result, Length(Result)-1); // terminating null
 end;
 
@@ -159,8 +227,8 @@ end;
 
 type
   TEntry = record
-    Name: String;
-    Vars: TStringDynArray;
+    Name: FarString;
+    Vars: TFarStringDynArray;
     Enabled: Boolean;
   end;
   TEntryDynArray = array of TEntry;
@@ -171,19 +239,19 @@ var
   R, I: Integer;
 begin
   Result := nil;
-  R := RegCreateKeyEx(HKEY_CURRENT_USER, PChar(RegKey), 0, nil, 0, KEY_READ, nil, Key, nil);
+  R := RegCreateKeyExF(HKEY_CURRENT_USER, PFarChar(RegKey), 0, nil, 0, KEY_READ, nil, Key, nil);
   if R<>ERROR_SUCCESS then
     Exit;
   try
     I := 0;
     repeat
-      R := RegOpenKeyEx(Key, PChar(IntToStr(I)), 0, KEY_READ, SubKey);
+      R := RegOpenKeyExF(Key, PFarChar(IntToStr(I)), 0, KEY_READ, SubKey);
       if R<>ERROR_SUCCESS then
         Exit;
       try
         SetLength(Result, Length(Result)+1);
-        Result[High(Result)].Name := PChar(RegGetString(SubKey, nil));
-        Result[High(Result)].Vars := StringsToArray(PChar(RegGetString(SubKey, 'Vars')));
+        Result[High(Result)].Name := PFarChar(RegGetString(SubKey, nil));
+        Result[High(Result)].Vars := StringsToArray(PFarChar(RegGetString(SubKey, 'Vars')));
         Result[High(Result)].Enabled := Boolean(RegGetInt(SubKey, 'Enabled'));
       finally
         RegCloseKey(SubKey);
@@ -195,22 +263,26 @@ begin
   end;
 end;
 
-function OemToCharStr(S: String): String;
+function OemToCharStr(S: FarString): FarString;
 begin
+{$IFNDEF UNICODE}
   SetLength(Result, Length(S));
-  OemToChar(PChar(S), @Result[1]);
+  OemToChar(PFarChar(S), @Result[1]);
+{$ELSE}
+  Result := S;
+{$ENDIF}
 end;
 
 procedure Update;
 var
   Entries: TEntryDynArray;
-  Env: TStringDynArray;
+  Env: TFarStringDynArray;
   I, J: Integer;
 begin
   // Entirely clear environment
   Env := ReadEnvironment;
   for I:=0 to High(Env) do
-    SetEnvironmentVariable(PChar(GetName(Env[I])), nil);
+    SetEnvironmentVariableF(PFarChar(GetName(Env[I])), nil);
 
   // Reset the environment to the initial state
   for I:=0 to High(InitialEnvironment) do
@@ -226,12 +298,16 @@ end;
 
 // ****************************************************************************
 
-function GetMsg(MsgId: TMessage): PChar;
+function GetMsg(MsgId: TMessage): PFarChar;
 begin
   Result := FARAPI.GetMsg(FARAPI.ModuleNumber, Integer(MsgId));
 end;
 
+{$IFDEF UNICODE}
+procedure SetStartupInfoW(var psi: TPluginStartupInfo); stdcall;
+{$ELSE}
 procedure SetStartupInfo(var psi: TPluginStartupInfo); stdcall;
+{$ENDIF}
 begin
   Move(psi, FARAPI, SizeOf(FARAPI));
   RegKey := FARAPI.RootKey + '\EnvMan';
@@ -239,9 +315,13 @@ begin
 end;
 
 var
-  PluginMenuStrings: array[0..0] of PChar;
+  PluginMenuStrings: array[0..0] of PFarChar;
 
+{$IFDEF UNICODE} 
+procedure GetPluginInfoW(var pi: TPluginInfo); stdcall;
+{$ELSE} 
 procedure GetPluginInfo(var pi: TPluginInfo); stdcall;
+{$ENDIF}
 begin
   pi.StructSize := SizeOf(pi);
   pi.Flags := PF_PRELOAD or PF_EDITOR;
@@ -268,9 +348,38 @@ const
   Rows = 15;
   H = Rows + 8;
   ItemNr = 6; // not counting rows
+  TotalItemNr = ItemNr+Rows;
 var
-  Items: array[0..ItemNr+Rows-1] of TFarDialogItem;
+  Items: array[0..TotalItemNr-1] of TFarDialogItem;
   I: Integer;
+{$IFDEF UNICODE}
+  Data: array[0..TotalItemNr-1] of FarString;
+  Handle: THandle;
+{$ENDIF}
+  
+  procedure SetupData(Index: Integer; InitialData: FarString; BufSize: Integer = -1);
+  begin
+    {$IFNDEF UNICODE}
+    CopyStrToBuf(InitialData, Items[Index].Data.Data, SizeOf(Items[Index].Data.Data));
+    {$ELSE}
+    if BufSize=-1 then
+      BufSize := Length(InitialData)+1;
+    SetLength(Data[Index], BufSize);
+    CopyStrToBuf(InitialData, @Data[Index][1], BufSize);
+    Items[Index].PtrData := @Data[Index][1];
+    Items[Index].MaxLen := BufSize;
+    {$ENDIF}
+  end;
+
+  function GetData(Index: Integer): FarString;
+  begin
+    {$IFNDEF UNICODE}
+    Result := PFarChar(@Items[Index].Data.Data[0])
+    {$ELSE}
+    Result := PFarChar(@Data[Index][1])
+    {$ENDIF}
+  end;
+
 begin
   FillChar(Items, SizeOf(Items), 0);
 
@@ -279,7 +388,7 @@ begin
   Items[0].Y1 := 1;
   Items[0].X2 := W-1-3;
   Items[0].Y2 := H-1-1;
-  CopyStrToBuf(GetMsg(Caption), Items[0].Data.Data, SizeOf(Items[0].Data.Data));
+  SetupData(0, GetMsg(Caption));
 
   Items[1].ItemType := DI_EDIT;
   Items[1].X1 := 11;
@@ -290,21 +399,21 @@ begin
   Items[1].Flags := DIF_HISTORY;
   if Entry.Name='' then
     Items[1].Focus := 1;
-  CopyStrToBuf(Entry.Name, Items[1].Data.Data, SizeOf(Items[1].Data.Data));
+  SetupData(1, Entry.Name, 128);
 
   Items[2].ItemType := DI_CHECKBOX;
   Items[2].X1 := W-1-5-10;
   Items[2].Y1 := 2;
   Items[2].Y2 := 2;
-  Items[2].Param.Selected := Entry.Enabled;
-  CopyStrToBuf(GetMsg(MEnabled), Items[2].Data.Data, SizeOf(Items[2].Data.Data));
+  Items[2].Param.Selected := Integer(Entry.Enabled);
+  SetupData(2, GetMsg(MEnabled));
 
   Items[3].ItemType := DI_TEXT;
   Items[3].X1 := 5;
   Items[3].Y1 := 2;
   Items[3].X2 := 10;
   Items[3].Y2 := 2;
-  CopyStrToBuf(GetMsg(MName), Items[3].Data.Data, SizeOf(Items[3].Data.Data));
+  SetupData(3, GetMsg(MName));
 
   for I:=0 to Rows-1 do
   begin
@@ -317,36 +426,45 @@ begin
     if (I=0) and (Entry.Name<>'') then
       Items[4+I].Focus := 1;
     if I<Length(Entry.Vars) then
-      CopyStrToBuf(Entry.Vars[I], Items[4+I].Data.Data, SizeOf(Items[4+I].Data.Data));
+      SetupData(4+I, Entry.Vars[I], 4096);
   end;
 
   Items[4+Rows].ItemType := DI_BUTTON;
   Items[4+Rows].Y1 := H-1-2;
   Items[4+Rows].Flags := DIF_CENTERGROUP;
-  Items[4+Rows].DefaultButton := true;
-  CopyStrToBuf(GetMsg(MOK), Items[4+Rows].Data.Data, SizeOf(Items[4+Rows].Data.Data));
+  Items[4+Rows].DefaultButton := 1;
+  SetupData(4+Rows, GetMsg(MOK));
 
   Items[5+Rows].ItemType := DI_BUTTON;
   Items[5+Rows].Y1 := H-1-2;
   Items[5+Rows].Flags := DIF_CENTERGROUP;
-  Items[5+Rows].DefaultButton := true;
-  CopyStrToBuf(GetMsg(MCancel), Items[5+Rows].Data.Data, SizeOf(Items[5+Rows].Data.Data));
+  SetupData(5+Rows, GetMsg(MCancel));
 
   Result := False;
+  {$IFNDEF UNICODE}
   I := FARAPI.Dialog(FARAPI.ModuleNumber, -1, -1, W, H, 'Editor', @Items[0], Length(Items));
+  {$ELSE}
+  Handle := FARAPI.DialogInit(FARAPI.ModuleNumber, -1, -1, W, H, 'Editor', @Items[0], Length(Items), 0, 0, nil, 0);
+  I := FARAPI.DialogRun(Handle);
+  FARAPI.DialogFree(Handle);
+  {$ENDIF}
   if I<>4+Rows then
     Exit;
 
   SetLength(Entry.Vars, 1);
-  Entry.Name := PChar(@Items[1].Data.Data[0]);
-  Entry.Enabled := Items[2].Param.Selected;
+  Entry.Name := GetData(1);
+  Entry.Enabled := Boolean(Items[2].Param.Selected);
   SetLength(Entry.Vars, Rows);
   for I:=0 to Rows-1 do
-    Entry.Vars[I] := PChar(@Items[4+I].Data.Data[0]);
+    Entry.Vars[I] := GetData(4+I);
   Result := True;
 end;
 
+{$IFDEF UNICODE}
+function OpenPluginW(OpenFrom: Integer; Item: Integer): THandle; stdcall;
+{$ELSE}
 function OpenPlugin(OpenFrom: Integer; Item: Integer): THandle; stdcall;
+{$ENDIF}
 var
   Entries: TEntryDynArray;
   Current: Integer;
@@ -368,7 +486,7 @@ var
     for I:=Index+1 to High(Entries) do
       SaveEntry(I-1, Entries[I]);
     Key := OpenPluginKey;
-    RegDeleteKey(Key, PChar(IntToStr(High(Entries))));
+    RegDeleteKeyF(Key, PFarChar(IntToStr(High(Entries))));
     RegCloseKey(Key);
   end;
 
@@ -427,10 +545,14 @@ begin
       Current := 0;
     for I:=0 to High(Entries) do
     begin
+      {$IFNDEF UNICODE}
       CopyStrToBuf(Entries[I].Name, Items[I].Text, SizeOf(Items[I].Text));
-      Items[I].Selected := I=Current;
-      Items[I].Checked := Entries[I].Enabled;
-      Items[I].Separator := {False}Entries[I].Name='-';
+      {$ELSE}
+      Items[I].TextPtr := PFarChar(Entries[I].Name);
+      {$ENDIF}
+      Items[I].Selected := Integer(I=Current);
+      Items[I].Checked := Integer(Entries[I].Enabled);
+      Items[I].Separator := Integer({False}Entries[I].Name='-');
     end;
     Current := FARAPI.Menu(FARAPI.ModuleNumber, -1, -1, 0, FMENU_AUTOHIGHLIGHT or FMENU_WRAPMODE, 'Environment Manager', '+,-,Space,Ins,Del,F4,F5,Ctrl-Up,Ctrl-Down', 'MainMenu', @BreakKeys, @BreakCode, @Items[0], Length(Items));
     if (Current=-1) and (BreakCode=-1) then
@@ -473,7 +595,7 @@ begin
       4: // VK_DELETE
         if Current >= 0 then
         begin
-          if FARAPI.Message(FARAPI.ModuleNumber, FMSG_WARNING or FMSG_ALLINONE or FMSG_MB_OKCANCEL, nil, PPCharArray(PChar(GetMsg(MConfirmDeleteTitle)+#10+GetMsg(MConfirmDeleteText)+#10+Entries[Current].Name)), 3, 0)=0 then
+          if FARAPI.Message(FARAPI.ModuleNumber, FMSG_WARNING or FMSG_ALLINONE or FMSG_MB_OKCANCEL, nil, PPCharArray(PFarChar(PToStr(GetMsg(MConfirmDeleteTitle))+#10+PToStr(GetMsg(MConfirmDeleteText))+#10+Entries[Current].Name)), 3, 0)=0 then
             DeleteEntry(Current);
         end;
       5: // VK_F4
@@ -535,9 +657,9 @@ begin
 end;
 
 exports
-  SetStartupInfo,
-  GetPluginInfo,
-  OpenPlugin;
+  {$IFDEF UNICODE}SetStartupInfoW{$ELSE}SetStartupInfo{$ENDIF},
+  {$IFDEF UNICODE}GetPluginInfoW{$ELSE}GetPluginInfo{$ENDIF},
+  {$IFDEF UNICODE}OpenPluginW{$ELSE}OpenPlugin{$ENDIF};
 
 begin
   InitialEnvironment := ReadEnvironment;
