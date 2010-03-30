@@ -7,8 +7,7 @@ library EnvMan;
   TODO:
   * don't overwrite unmanaged variables
   * allow escaping % in strings
-  * Unicode version?
-  * help file?
+  * Russian help file
   * better error checking?
 }
 
