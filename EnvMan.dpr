@@ -618,34 +618,36 @@ begin
             InsertEntry(Current+1, Entry);
         end;
       7: // VK_CTRLUP
-        if Current=0 then // create separator
-        begin
-          Entry.Name := '-';
-          Entry.Vars := nil;
-          Entry.Enabled := False;
-          InsertEntry(1, Entry);
-        end
-        else
-        begin
-          SaveEntry(Current, Entries[Current-1]);
-          SaveEntry(Current-1, Entries[Current]);
-          Dec(Current);
-        end;
+        if Current >= 0 then
+          if Current = 0 then // create separator
+          begin
+            Entry.Name := '-';
+            Entry.Vars := nil;
+            Entry.Enabled := False;
+            InsertEntry(1, Entry);
+          end
+          else
+          begin
+            SaveEntry(Current, Entries[Current-1]);
+            SaveEntry(Current-1, Entries[Current]);
+            Dec(Current);
+          end;
       8: // VK_CTRLDOWN
-        if Current=High(Entries) then // create separator
-        begin
-          Entry.Name := '-';
-          Entry.Vars := nil;
-          Entry.Enabled := False;
-          InsertEntry(Current, Entry);
-          Inc(Current);
-        end
-        else
-        begin
-          SaveEntry(Current, Entries[Current+1]);
-          SaveEntry(Current+1, Entries[Current]);
-          Inc(Current);
-        end;
+        if Current >= 0 then
+          if Current = High(Entries) then // create separator
+          begin
+            Entry.Name := '-';
+            Entry.Vars := nil;
+            Entry.Enabled := False;
+            InsertEntry(Current, Entry);
+            Inc(Current);
+          end
+          else
+          begin
+            SaveEntry(Current, Entries[Current+1]);
+            SaveEntry(Current+1, Entries[Current]);
+            Inc(Current);
+          end;
       else // VK_RETURN / hotkey
         if Current >= 0 then
         begin
