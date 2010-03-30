@@ -98,7 +98,7 @@ begin
       Inc(P2);
     until P2^=#0;
     SetLength(Result, Length(Result)+1);
-    Result[High(Result)] := Copy(P, 1, INT_PTR(P2)-INT_PTR(P));
+    Result[High(Result)] := Copy(P, 1, UINT_PTR(P2)-UINT_PTR(P));
     P := P2;
     Inc(P);
   end;
