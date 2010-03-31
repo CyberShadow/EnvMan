@@ -56,12 +56,14 @@ $ #EnvMan editor dialog#
 
     This dialog allows editing one environment variable configuration entry.
 
-    The #Name# and #Enabled# fields are self-explanatory. The multi-line
-edit box below them defines the changes to the environment performed by
-the current entry.
+    The #Name# and #Enabled# fields are self-explanatory. If you would like
+to force a specific letter as the menu item hotkey, prefix it with #&#.
+Use #&&# to insert a single ampersand.
 
-    The format is similar to the format of the standard #set# command
-(bar the option switches). Each line must be in the format #NAME#=#Value#.
-The value may contain references to other environment variables, using the
-standard syntax #%VARNAME%#. Thus, it is possible to append to an existing
-environment variable using the syntax #NAME=%NAME%;TextToAppendHere#.
+    The multi-line edit box below defines the changes to the environment 
+performed by the current entry. The format is similar to the format of the 
+standard #set# command (bar the option switches). Each line must be in the 
+format #NAME#=#Value#. The value may contain references to other environment 
+variables, using the standard syntax #%VARNAME%#. Thus, it is possible to 
+append to an existing environment variable using the syntax 
+#NAME=%NAME%;TextToAppendHere#.
