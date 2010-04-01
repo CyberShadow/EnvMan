@@ -253,12 +253,25 @@ begin
     SetEnvironmentVariableF(@S[1], @S[P+1]);
 end;
 
+// Remove Windows' special environment strings (which start with =)
+function RemoveSpecial(A: TFarStringDynArray): TFarStringDynArray;
+var
+  I: Integer;
+begin
+  for I:=0 to High(A) do
+    if (Length(A[I])>0) and (A[I][1] <> '=') then
+    begin
+      SetLength(Result, Length(Result)+1);
+      Result[High(Result)] := A[I];
+    end;
+end;
+
 function ReadEnvironment: TFarStringDynArray;
 var
   Env: PFarChar;
 begin
   Env := GetEnvironmentStringsF;
-  Result := StringsToArray(Env);
+  Result := RemoveSpecial(StringsToArray(Env));
   FreeEnvironmentStringsF(Env);
 end;
 
