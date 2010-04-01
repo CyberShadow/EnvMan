@@ -24,7 +24,33 @@ type
   FarChar = TFarChar;
   TFarStringDynArray = array of FarString;
   
-  TMessage = (MNewCaption, MEditCaption, MCopyCaption, MEnabled, MName, MOK, MCancel, MConfirmDeleteTitle, MConfirmDeleteText);
+  TMessage = (
+    MNewCaption, 
+    MEditCaption, 
+    MCopyCaption, 
+    MImportCaption, 
+    
+    MEnabled, 
+    MName, 
+    MOK, 
+    MCancel, 
+    
+    MConfirmDeleteTitle, 
+    MConfirmDeleteText,
+    
+    MWarning,
+    MEnvEdited1,
+    MEnvEdited2,
+    MEnvEdited3,
+    MContinue,
+    MImport,
+
+    MNoChange1,
+    MNoChange2,
+    MNoChange3,
+    MOverwrite,
+    MKeep
+  );
 
 function PToStr(P: PFarChar): FarString; inline; // work around Delphi's strict type declarations
 begin
@@ -80,6 +106,16 @@ end;
 function ExpandEnvironmentStringsF(lpSrc: PFarChar; lpDst: PFarChar; nSize: DWORD): DWORD; inline;
 begin
   Result := {$IFNDEF UNICODE}ExpandEnvironmentStringsA{$ELSE}ExpandEnvironmentStringsW{$ENDIF}(lpSrc, lpDst, nSize);
+end;
+
+function OemToCharStr(S: FarString): FarString;
+begin
+{$IFNDEF UNICODE}
+  SetLength(Result, Length(S));
+  OemToChar(PFarChar(S), @Result[1]);
+{$ELSE}
+  Result := S;
+{$ENDIF}
 end;
 
 // ****************************************************************************
@@ -195,6 +231,11 @@ begin
   Result := Copy(S, 1, Pos('=', S)-1);
 end;
 
+function GetValue(S: FarString): FarString;
+begin
+  Result := Copy(S, Pos('=', S)+1, MaxInt);
+end;
+
 procedure ApplyNameValuePair(S: FarString);
 var
   P: Integer;
@@ -219,6 +260,26 @@ begin
   Env := GetEnvironmentStringsF;
   Result := StringsToArray(Env);
   FreeEnvironmentStringsF(Env);
+end;
+
+procedure ClearEnvironment;
+var
+  Env: TFarStringDynArray;
+  I: Integer;
+begin
+  Env := ReadEnvironment;
+  for I:=0 to High(Env) do
+    SetEnvironmentVariableF(PFarChar(OemToCharStr(GetName(Env[I]))), nil);
+end;
+
+procedure SetEnvironment(Env: TFarStringDynArray);
+var
+  I: Integer;
+begin
+  ClearEnvironment;
+  
+  for I:=0 to High(Env) do
+    ApplyNameValuePair(OemToCharStr(Env[I]));
 end;
 
 function ExpandEnv(S: FarString): FarString;
@@ -268,30 +329,16 @@ begin
   end;
 end;
 
-function OemToCharStr(S: FarString): FarString;
-begin
-{$IFNDEF UNICODE}
-  SetLength(Result, Length(S));
-  OemToChar(PFarChar(S), @Result[1]);
-{$ELSE}
-  Result := S;
-{$ENDIF}
-end;
+var
+  LastUpdate: TFarStringDynArray;
 
 procedure Update;
 var
   Entries: TEntryDynArray;
-  Env: TFarStringDynArray;
   I, J: Integer;
 begin
-  // Entirely clear environment
-  Env := ReadEnvironment;
-  for I:=0 to High(Env) do
-    SetEnvironmentVariableF(PFarChar(OemToCharStr(GetName(Env[I]))), nil);
-
   // Reset the environment to the initial state
-  for I:=0 to High(InitialEnvironment) do
-    ApplyNameValuePair(OemToCharStr(InitialEnvironment[I]));
+  SetEnvironment(InitialEnvironment);
 
   // Apply entries
   Entries := ReadEntries;
@@ -299,6 +346,93 @@ begin
     if Entries[I].Enabled then
       for J:=0 to High(Entries[I].Vars) do
         ApplyNameValuePair(ExpandEnv(OemToCharStr(Entries[I].Vars[J])));
+  
+  LastUpdate := ReadEnvironment;
+end;
+
+function StringsEqual(A, B: TFarStringDynArray): Boolean;
+var
+  I: Integer;
+begin
+  Result := False;
+  if Length(A) <> Length(B) then
+    Exit;
+  for I:=0 to High(A) do
+    if A[I] <> B[I] then
+      Exit;
+  Result := True;
+end;
+
+function EntriesEqual(A, B: TEntryDynArray): Boolean;
+var
+  I: Integer;
+begin
+  Result := False;
+  if Length(A) <> Length(B) then
+    Exit;
+  for I:=0 to High(A) do
+    if (A[I].Name <> B[I].Name) or not StringsEqual(A[I].Vars, B[I].Vars) or (A[I].Enabled <> B[I].Enabled) then
+      Exit;
+  Result := True;
+end;
+
+function EntryDiff(Env1, Env2: TFarStringDynArray): TEntry;
+var
+  I, J: Integer;
+  Found, FoundEqual: Boolean;
+  Name, NewValue, OldValue: String;
+
+  procedure AppendSetting(Name, Value: FarString);
+  begin
+    SetLength(Result.Vars, Length(Result.Vars)+1);
+    Result.Vars[High(Result.Vars)] := Name+'='+Value;
+    if Result.Name<>'' then
+      Result.Name := Result.Name + ', ';
+    Result.Name := Result.Name + Name;
+  end;
+
+begin
+  // Find new and modified variables
+  for J:=0 to High(Env2) do
+  begin
+    FoundEqual := False;
+    Name := GetName(Env2[J]);
+    NewValue := GetValue(Env2[J]);
+    for I:=0 to High(Env1) do
+      if GetName(Env1[I])=Name then
+      begin
+        OldValue := GetValue(Env1[I]);
+        if NewValue=OldValue then
+          FoundEqual := True
+        else
+        begin
+          if Copy(NewValue, 1, Length(OldValue))=OldValue then // append
+            NewValue := '%'+Name+'%'+Copy(NewValue, Length(OldValue)+1, MaxInt)
+          else
+          if Copy(NewValue, Length(NewValue)-Length(OldValue)+1, Length(OldValue))=OldValue then // prepend
+            NewValue := Copy(NewValue, Length(NewValue)-Length(OldValue)+1, MaxInt)+'%'+Name+'%';
+        end;
+        Break;
+      end;
+    if not FoundEqual then
+      AppendSetting(Name, NewValue);
+  end;
+
+  // Find deleted variables
+  for I:=0 to High(Env1) do
+  begin
+    Name := GetName(Env1[I]);
+    Found := False;
+    for J:=0 to High(Env2) do
+      if GetName(Env2[J])=Name then
+      begin
+        Found := True;
+        Break
+      end;
+    
+    if not Found then
+      AppendSetting(Name, '');
+  end;
 end;
 
 // ****************************************************************************
@@ -508,6 +642,8 @@ var
   I: Integer;
   Items: array of TFarMenuItem;
   Key: HKEY;
+  Env, NewEnv: TFarStringDynArray;
+  InitialEntries: TEntryDynArray;
 const
   VK_CTRLUP   = VK_UP   or (PKF_CONTROL shl 16);
   VK_CTRLDOWN = VK_DOWN or (PKF_CONTROL shl 16);
@@ -525,6 +661,37 @@ const
   );
 
 begin
+  Result := INVALID_HANDLE_VALUE;
+  
+  Env := ReadEnvironment;
+  if not StringsEqual(LastUpdate, Env) then
+  begin
+    I := FARAPI.Message(FARAPI.ModuleNumber, FMSG_WARNING or FMSG_ALLINONE, nil, PPCharArray(PFarChar(
+      PToStr(GetMsg(MWarning))+#10+
+      PToStr(GetMsg(MEnvEdited1))+#10+
+      PToStr(GetMsg(MEnvEdited2))+#10+
+      PToStr(GetMsg(MEnvEdited3))+#10+
+      PToStr(GetMsg(MContinue))+#10+
+      PToStr(GetMsg(MCancel))+#10+
+      PToStr(GetMsg(MImport)))), 7, 3);
+    if (I=1) or (I=-1) then
+      Exit;
+    if I=2 then // import
+    begin
+      Entry := EntryDiff(LastUpdate, Env);
+      Entry.Name := 'Imported: ' + Entry.Name;
+      Entry.Enabled := True;
+      if EditEntry(Entry, MImportCaption) then
+      begin
+        Entries := ReadEntries;
+        SaveEntry(Length(Entries), Entry);
+      end
+      else
+        Exit; // User cancelled
+    end;
+  end;
+
+  InitialEntries := ReadEntries;
   Current := 0;
   repeat
     Entries := ReadEntries;
@@ -660,7 +827,24 @@ begin
   until false;
 
   Update;
-  Result := INVALID_HANDLE_VALUE;
+  NewEnv := ReadEnvironment;
+
+  if EntriesEqual(InitialEntries, Entries) then // no changes
+    if not StringsEqual(Env, NewEnv) then // but env has changed
+    begin
+      if FARAPI.Message(FARAPI.ModuleNumber, FMSG_WARNING or FMSG_ALLINONE, nil, PPCharArray(PFarChar(
+        PToStr(GetMsg(MWarning))+#10+
+        PToStr(GetMsg(MNoChange1))+#10+
+        PToStr(GetMsg(MNoChange2))+#10+
+        PToStr(GetMsg(MNoChange3))+#10+
+        PToStr(GetMsg(MOverwrite))+#10+
+        PToStr(GetMsg(MKeep)))), 7, 2)<>0 then // Keep was selected?
+      begin
+        // Restore last environment
+        SetEnvironment(Env);
+        LastUpdate := Env;
+      end;
+    end;
 end;
 
 exports

@@ -3,6 +3,7 @@
 "New environment entry"
 "Edit environment entry"
 "Copy environment entry"
+"Import environment entry"
 
 "&Enabled"
 "&Name:"
@@ -11,3 +12,16 @@
 
 "Delete"
 "Do you wish to delete the entry"
+
+"Warning"
+"The environment was modified since EnvMan's last update."
+"If you continue, EnvMan will overwrite these changes."
+"Alternatively, you may import these changes as a new EnvMan setting."
+"Continue"
+"Import..."
+
+"You have made no changes to EnvMan settings, however the current"
+"environment does not correspond to the active EnvMan settings."
+"Overwrite the environment with the current settings?"
+"Overwrite"
+"Keep"
