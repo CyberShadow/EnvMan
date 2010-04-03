@@ -18,6 +18,7 @@ type
   TFarStringDynArray = array of FarString;
   
 function PToStr(P: PFarChar): FarString; inline; // work around Delphi's strict type declarations
+function CharToOemStr(S: FarString): FarString;
 function OemToCharStr(S: FarString): FarString;
 function NullStringsToArray(P: PFarChar): TFarStringDynArray;
 function ArrayToNullStrings(A: TFarStringDynArray): FarString;
@@ -64,6 +65,16 @@ begin
   Result := PChar(P);
 {$ELSE}
   Result := PWideChar(P);
+{$ENDIF}
+end;
+
+function CharToOemStr(S: FarString): FarString;
+begin
+{$IFNDEF UNICODE}
+  SetLength(Result, Length(S));
+  CharToOem(PFarChar(S), @Result[1]);
+{$ELSE}
+  Result := S;
 {$ENDIF}
 end;
 

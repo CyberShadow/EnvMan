@@ -48,24 +48,26 @@ type
 var
   RegKey: FarString;
 
-function RegGetString(Key: HKEY; Name: PFarChar): FarString;
+function RegGetString(Key: HKEY; Name: PFarChar; Default: FarString = ''): FarString;
 var
   R: Integer;
   Size: Cardinal;
 begin
-  Result := 'x'; // hack for @Result[1]
+  Result := Default;
+
   Size := 0;
+  R := RegQueryValueExF(Key, Name, nil, nil, nil, @Size);
+  if R<>ERROR_SUCCESS then
+    Exit;
+  
+  SetLength(Result, Size div SizeOf(FarChar));
+  if Size=0 then
+    Exit;
+
   R := RegQueryValueExF(Key, Name, nil, nil, @Result[1], @Size);
-  if R=ERROR_MORE_DATA then
-  begin
-    SetLength(Result, Size div SizeOf(FarChar));
-    R := RegQueryValueExF(Key, Name, nil, nil, @Result[1], @Size);
-    if R<>ERROR_SUCCESS then
-      Result := '';
-  end;
-  {$IFNDEF UNICODE}
-  CharToOem(@Result[1], @Result[1]);
-  {$ENDIF}
+
+  if R=ERROR_SUCCESS then
+    Result := CharToOemStr(Result)
 end;
 
 function RegGetInt(Key: HKEY; Name: PFarChar): Integer;
