@@ -612,11 +612,7 @@ begin
   Result := True;
 end;
 
-{$IFDEF UNICODE}
-function OpenPluginW(OpenFrom: Integer; Item: Integer): THandle; stdcall;
-{$ELSE}
-function OpenPlugin(OpenFrom: Integer; Item: Integer): THandle; stdcall;
-{$ENDIF}
+procedure ShowEntryMenu(Quiet: Boolean);
 var
   Entries: TEntryDynArray;
   Current: Integer;
@@ -674,10 +670,8 @@ const
   );
 
 begin
-  Result := INVALID_HANDLE_VALUE;
-  
   Env := ReadEnvironment;
-  if not StringsEqual(LastUpdate, Env) then
+  if not Quiet and not StringsEqual(LastUpdate, Env) then
   begin
     I := FARAPI.Message(FARAPI.ModuleNumber, FMSG_WARNING or FMSG_ALLINONE, nil, PPCharArray(PFarChar(
       PToStr(GetMsg(MWarning))+#10+
@@ -842,7 +836,7 @@ begin
   Update;
   NewEnv := ReadEnvironment;
 
-  if EntriesEqual(InitialEntries, Entries) then // no changes
+  if not Quiet and EntriesEqual(InitialEntries, Entries) then // no changes
     if not StringsEqual(Env, NewEnv) then // but env has changed
     begin
       if FARAPI.Message(FARAPI.ModuleNumber, FMSG_WARNING or FMSG_ALLINONE, nil, PPCharArray(PFarChar(
@@ -858,6 +852,27 @@ begin
         LastUpdate := Env;
       end;
     end;
+end;
+
+{$IFDEF UNICODE}
+function OpenPluginW(OpenFrom: Integer; Item: Integer): THandle; stdcall;
+{$ELSE}
+function OpenPlugin(OpenFrom: Integer; Item: Integer): THandle; stdcall;
+{$ENDIF}
+var
+  FromMacro: Boolean;
+begin
+  FromMacro := False;
+  {$IFDEF UNICODE}
+  if (OpenFrom and OPEN_FROMMACRO)<>0 then
+  begin
+    FromMacro := True;
+    OpenFrom := OpenFrom and not OPEN_FROMMACRO;
+  end;
+  {$ENDIF}
+
+  ShowEntryMenu(FromMacro);
+  Result := INVALID_HANDLE_VALUE;
 end;
 
 exports
