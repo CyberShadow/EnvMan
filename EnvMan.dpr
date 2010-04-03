@@ -548,14 +548,14 @@ begin
   Env := ReadEnvironment;
   if not Quiet and not StringsEqual(LastUpdate, Env) then
   begin
-    I := FARAPI.Message(FARAPI.ModuleNumber, FMSG_WARNING or FMSG_ALLINONE, nil, PPCharArray(PFarChar(
-      PToStr(GetMsg(MWarning))+#10+
-      PToStr(GetMsg(MEnvEdited1))+#10+
-      PToStr(GetMsg(MEnvEdited2))+#10+
-      PToStr(GetMsg(MEnvEdited3))+#10+
-      PToStr(GetMsg(MContinue))+#10+
-      PToStr(GetMsg(MCancel))+#10+
-      PToStr(GetMsg(MImport)))), 7, 3);
+    I := Message(FMSG_WARNING, [
+      GetMsg(MWarning),
+      GetMsg(MEnvEdited1),
+      GetMsg(MEnvEdited2),
+      GetMsg(MEnvEdited3),
+      GetMsg(MContinue),
+      GetMsg(MCancel),
+      GetMsg(MImport)], 3);
     if (I=1) or (I=-1) then
       Exit;
     if I=2 then // import
@@ -649,7 +649,7 @@ begin
       4: // VK_DELETE
         if Current >= 0 then
         begin
-          if FARAPI.Message(FARAPI.ModuleNumber, FMSG_WARNING or FMSG_ALLINONE or FMSG_MB_OKCANCEL, nil, PPCharArray(PFarChar(PToStr(GetMsg(MConfirmDeleteTitle))+#10+PToStr(GetMsg(MConfirmDeleteText))+#10+Entries[Current].Name)), 3, 0)=0 then
+          if Message(FMSG_WARNING or FMSG_MB_OKCANCEL, [GetMsg(MConfirmDeleteTitle), GetMsg(MConfirmDeleteText), Entries[Current].Name], 0)=0 then
             DeleteEntry(Current);
         end;
       5: // VK_F4
@@ -714,13 +714,13 @@ begin
   if not Quiet and EntriesEqual(InitialEntries, Entries) then // no changes
     if not StringsEqual(Env, NewEnv) then // but env has changed
     begin
-      if FARAPI.Message(FARAPI.ModuleNumber, FMSG_WARNING or FMSG_ALLINONE, nil, PPCharArray(PFarChar(
-        PToStr(GetMsg(MWarning))+#10+
-        PToStr(GetMsg(MNoChange1))+#10+
-        PToStr(GetMsg(MNoChange2))+#10+
-        PToStr(GetMsg(MNoChange3))+#10+
-        PToStr(GetMsg(MOverwrite))+#10+
-        PToStr(GetMsg(MKeep)))), 7, 2)<>0 then // Keep was selected?
+      if Message(FMSG_WARNING, [
+        GetMsg(MWarning),
+        GetMsg(MNoChange1),
+        GetMsg(MNoChange2),
+        GetMsg(MNoChange3),
+        GetMsg(MOverwrite),
+        GetMsg(MKeep)], 2)<>0 then // Keep was selected?
       begin
         // Restore last environment
         SetEnvironment(Env);

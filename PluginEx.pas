@@ -53,6 +53,8 @@ type
   {$ENDIF}
   end;
 
+function Message(Flags: DWORD; const Lines: array of FarString; ButtonCount: Integer; HelpTopic: PChar = nil): Integer;
+
 var
   FARAPI: TPluginStartupInfo;
 
@@ -262,6 +264,13 @@ begin
   {$ELSE}
   Result := PFarChar(FARAPI.SendDlgMessage(Handle, DM_GETCONSTTEXTPTR, Index, 0));
   {$ENDIF}
+end;
+
+// ************************************************************************************************************************************************************
+
+function Message(Flags: DWORD; const Lines: array of FarString; ButtonCount: Integer; HelpTopic: PChar = nil): Integer;
+begin
+  Result := FARAPI.Message(FARAPI.ModuleNumber, Flags, HelpTopic, PPCharArray(@Lines[0]), Length(Lines), ButtonCount);
 end;
 
 end.
