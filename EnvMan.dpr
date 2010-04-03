@@ -39,6 +39,7 @@ type
     MDeletedVars,
     MContinue,
     MImport,
+    MIgnore,
 
     MNoChange1,
     MNoChange2,
@@ -362,7 +363,7 @@ begin
   S := S + S2;
 end;
 
-function DescribeDiff(Env1, Env2: TFarStringDynArray): TFarStringDynArray;
+function DescribeDiff(Env1, Env2: TFarStringDynArray; var AllVars: FarString): TFarStringDynArray;
 var
   I, J: Integer;
   Found: Boolean;
@@ -406,12 +407,22 @@ begin
   end;
 
   Result := nil;
+  AllVars := '';
   if NewVars<>'' then
+  begin
     AppendToStrings(Result, GetMsg(MNewVars) + NewVars);
+    AppendToCommaList(AllVars, NewVars);
+  end;
   if ChangedVars<>'' then
+  begin
     AppendToStrings(Result, GetMsg(MChangedVars) + ChangedVars);
+    AppendToCommaList(AllVars, ChangedVars);
+  end;
   if DeletedVars<>'' then
+  begin
     AppendToStrings(Result, GetMsg(MDeletedVars) + DeletedVars);
+    AppendToCommaList(AllVars, DeletedVars);
+  end;
 end;
 
 function MakeDiffEntry(Env1, Env2: TFarStringDynArray): TEntry;
@@ -472,7 +483,7 @@ end;
 
 // ****************************************************************************
 
-function DoConfigure(IgnoredVariables: String): Boolean;
+function DoConfigure(IgnoredVariables: FarString): Boolean;
 const
   W = 75;
   H = 7;
@@ -482,6 +493,9 @@ var
   Name: PFarChar;
   N, OK, IIgnoredVariables: Integer;
 begin
+  while Copy(IgnoredVariables, 1, 1)=',' do
+    Delete(IgnoredVariables, 1, 1);
+  
   Dialog := TFarDialog.Create;
   try
     Dialog.Add(DI_DOUBLEBOX, 3, 1, W-1-3, H-1-1, GetMsg(MConfiguration));
@@ -624,6 +638,7 @@ var
   Key: HKEY;
   Env, NewEnv: TFarStringDynArray;
   InitialEntries: TEntryDynArray;
+  AllVars: FarString;
 const
   VK_CTRLUP   = VK_UP   or (PKF_CONTROL shl 16);
   VK_CTRLDOWN = VK_DOWN or (PKF_CONTROL shl 16);
@@ -646,9 +661,9 @@ begin
   begin
     I := Message(FMSG_WARNING, ConcatStrings([
       MakeStrings([GetMsg(MWarning), GetMsg(MEnvEdited1), GetMsg(MEnvEdited2), GetMsg(MEnvEdited3)]),
-      DescribeDiff(LastUpdate, Env),
-      MakeStrings([GetMsg(MContinue), GetMsg(MCancel), GetMsg(MImport)])
-      ]), 3);
+      DescribeDiff(LastUpdate, Env, AllVars),
+      MakeStrings([GetMsg(MContinue), GetMsg(MCancel), GetMsg(MImport), GetMsg(MIgnore)])
+      ]), 4);
     if (I=1) or (I=-1) then
       Exit;
     if I=2 then // import
@@ -663,6 +678,14 @@ begin
       end
       else
         Exit; // User cancelled
+    end
+    else
+    if I=3 then // ignore
+    begin
+      if not DoConfigure(GetIgnoredVariables+','+Join(Split(AllVars, ', '), ',')) then
+        Exit;
+      Env := ReadEnvironment;
+      LastUpdate := Env;
     end;
   end;
 
