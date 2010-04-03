@@ -1,8 +1,34 @@
-#include "farversion.hpp"
-
-#define PLUGIN_BUILD 6
 #define PLUGIN_DESC "Environment Manager Plugin for FAR Manager"
 #define PLUGIN_NAME "EnvMan"
 #define PLUGIN_FILENAME "EnvMan.dll"
+#define PLUGIN_VERSION_MAJOR 1
+#define PLUGIN_VERSION_MINOR 4
 
-genericpluginrc(PLUGIN_BUILD, PLUGIN_DESC, PLUGIN_NAME, PLUGIN_FILENAME)
+#define DO_STRINGIZE(x) #x
+#define STRINGIZE(x) DO_STRINGIZE(x)
+
+1 VERSIONINFO
+FILEVERSION PLUGIN_VERSION_MAJOR, PLUGIN_VERSION_MINOR, 0, 0
+PRODUCTVERSION PLUGIN_VERSION_MAJOR, PLUGIN_VERSION_MINOR, 0, 0
+FILEOS 4
+FILETYPE 2
+{
+ BLOCK "StringFileInfo"
+ {
+  BLOCK "000004E4"
+  {
+   VALUE "CompanyName", "thecybershadow.net" "\000\000"
+   VALUE "FileDescription", PLUGIN_DESC "\000"
+   VALUE "FileVersion", STRINGIZE(PLUGIN_VERSION_MAJOR) "." STRINGIZE(PLUGIN_VERSION_MINOR) "\000"
+   VALUE "InternalName", PLUGIN_NAME "\000"
+   VALUE "LegalCopyright", "Vladimir Panteleev <vladimir@thecybershadow.net>" "\000\000"
+   VALUE "OriginalFilename", PLUGIN_FILENAME "\000"
+   VALUE "ProductName", PLUGIN_NAME "\000"
+   VALUE "ProductVersion", STRINGIZE(PLUGIN_VERSION_MAJOR) "." STRINGIZE(PLUGIN_VERSION_MINOR) "\000"
+  }
+ }
+ BLOCK "VarFileInfo"
+ {
+   VALUE "Translation", 0, 0x4e4
+ }
+}
