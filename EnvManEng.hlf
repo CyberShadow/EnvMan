@@ -24,6 +24,9 @@ in the new value, for example: #PATH=%PATH%;C:\ExamplePath#
 of environment variables for EnvMan to ignore using the 
 ~"Plugins configuration"~@:PluginsConfig@ menu.
 
+    EnvMan is also controllable using the ~command line~@CommandLine@, 
+with the #envman:# prefix. 
+
 @MainMenu
 $ #EnvMan entry list#
 
@@ -77,3 +80,18 @@ $ #EnvMan configuration#
 variable names to ignore. You may delimit several variables using commas and 
 semicolons. The default setting includes FARENV_EXPORT_HWND, a service 
 variable used by the FarEnv plugin.
+
+@CommandLine
+$ #Command line#
+
+    You may enable, disable or toggle configuration entries using the FAR
+command line and the #envman:# prefix. The syntax is as follows:
+
+    If the command line is empty, EnvMan will display the 
+~entry list~@MainMenu@, but it will not display any warnings regarding 
+external environment/configuration changes. Otherwise, it must begin with 
+either #+#, #-# or #*#. This character represents the operation: enable, 
+disable or toggle, respectively. Following is the entire name of the 
+configuration, without any kind of quoting or escaping.
+
+    Example: #envman:+Delphi# will enable the #Delphi# configuration entry.
