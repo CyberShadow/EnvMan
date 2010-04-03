@@ -134,6 +134,7 @@ function RemoveSpecial(A: TFarStringDynArray): TFarStringDynArray;
 var
   I: Integer;
 begin
+  Result := nil;
   for I:=0 to High(A) do
     if (Length(A[I])>0) and (A[I][1] <> '=') then
     begin
