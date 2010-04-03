@@ -24,7 +24,11 @@ function NullStringsToArray(P: PFarChar): TFarStringDynArray;
 function ArrayToNullStrings(A: TFarStringDynArray): FarString;
 procedure CopyStrToBuf(S: FarString; Buf: PFarChar; BufSize: Integer);
 function IntToStr(I: Integer): FarString; inline;
+function StrReplace(Haystack, Source, Dest: FarString): FarString;
+function Trim(S: FarString): FarString;
+function Split(S: FarString; Delim: FarString): TFarStringDynArray;
 function SplitByAny(S, Delims: FarString): TFarStringDynArray;
+function Join(S: TFarStringDynArray; Delim: FarString): FarString;
 function MakeStrings(const S: array of FarString): TFarStringDynArray;
 procedure AppendToStrings(var Strings: TFarStringDynArray; S: FarString);
 function ConcatStrings(const S: array of TFarStringDynArray): TFarStringDynArray;
@@ -139,6 +143,30 @@ begin
   Str(I, Result);
 end;
 
+function StrReplace(Haystack, Source, Dest: FarString): FarString;
+var
+  P: Integer;
+begin
+  Result := Haystack;
+  while true do
+  begin
+    P := Pos(Source, Result);
+    if P=0 then
+      Exit;
+    Delete(Result, P, Length(Source));
+    Insert(Result, Dest, P);
+  end;
+end;
+
+function Trim(S: FarString): FarString;
+begin
+  while Copy(S, 1, 1)=' ' do
+    Delete(S, 1, 1);
+  while (Length(S)>0) and (Copy(S, Length(S), 1)=' ') do
+    Delete(S, Length(S), 1);
+  Result := S;
+end;
+
 function PosAny(Delims, S: FarString): Integer;
 var
   I, P: Integer;
@@ -149,6 +177,22 @@ begin
     P := Pos(Delims[I], S);
     if (Result=0) or ((P <> 0) and (P < Result)) then
       Result := P;
+  end;
+end;
+
+function Split(S: FarString; Delim: FarString): TFarStringDynArray;
+var
+  P: Integer;
+begin
+  Result := nil;
+  if S='' then Exit;
+  S := S + Delim;
+  while S<>'' do
+  begin
+    SetLength(Result, Length(Result)+1);
+    P := Pos(Delim, S);
+    Result[High(Result)] := Copy(S, 1, P-1);
+    Delete(S, 1, P-1+Length(Delim));
   end;
 end;
 
@@ -165,6 +209,19 @@ begin
     P := PosAny(Delims, S);
     Result[High(Result)] := Copy(S, 1, P-1);
     Delete(S, 1, P);
+  end;
+end;
+
+function Join(S: TFarStringDynArray; Delim: FarString): FarString;
+var
+  I: Integer;
+begin
+  Result := '';
+  for I:=0 to High(S) do
+  begin
+    if I>0 then
+      Result := Result + Delim;
+    Result := Result + S[I];
   end;
 end;
 
