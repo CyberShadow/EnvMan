@@ -720,7 +720,7 @@ begin
       4: // VK_DELETE
         if Current >= 0 then
         begin
-          if Message(FMSG_WARNING or FMSG_MB_OKCANCEL, [GetMsg(MConfirmDeleteTitle), GetMsg(MConfirmDeleteText), Entries[Current].Name], 0)=0 then
+          if Message(FMSG_WARNING or FMSG_MB_OKCANCEL, [GetMsg(MConfirmDeleteTitle), GetMsg(MConfirmDeleteText), Entries[Current].Name])=0 then
             DeleteEntry(Current);
         end;
       5: // VK_F4

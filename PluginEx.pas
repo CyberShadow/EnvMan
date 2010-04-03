@@ -60,7 +60,7 @@ type
   {$ENDIF}
   end;
 
-function Message(Flags: DWORD; const Lines: array of FarString; ButtonCount: Integer; HelpTopic: PFarChar = nil): Integer;
+function Message(Flags: DWORD; const Lines: array of FarString; ButtonCount: Integer = 0; HelpTopic: PFarChar = nil): Integer;
 
 var
   FARAPI: TPluginStartupInfo;
@@ -357,7 +357,7 @@ end;
 
 // ************************************************************************************************************************************************************
 
-function Message(Flags: DWORD; const Lines: array of FarString; ButtonCount: Integer; HelpTopic: PFarChar = nil): Integer;
+function Message(Flags: DWORD; const Lines: array of FarString; ButtonCount: Integer = 0; HelpTopic: PFarChar = nil): Integer;
 begin
   Result := FARAPI.Message(FARAPI.ModuleNumber, Flags, HelpTopic, PPCharArray(@Lines[0]), Length(Lines), ButtonCount);
 end;
