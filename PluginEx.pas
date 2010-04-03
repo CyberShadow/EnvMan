@@ -25,6 +25,9 @@ function ArrayToNullStrings(A: TFarStringDynArray): FarString;
 procedure CopyStrToBuf(S: FarString; Buf: PFarChar; BufSize: Integer);
 function IntToStr(I: Integer): FarString; inline;
 function SplitByAny(S, Delims: FarString): TFarStringDynArray;
+function MakeStrings(const S: array of FarString): TFarStringDynArray;
+procedure AppendToStrings(var Strings: TFarStringDynArray; S: FarString);
+function ConcatStrings(const S: array of TFarStringDynArray): TFarStringDynArray;
 
 // ANSI/UNICODE wrappers for WinAPI functions
 function RegCreateKeyExF(hKey: HKEY; lpSubKey: PFarChar; Reserved: DWORD; lpClass: PFarChar; dwOptions: DWORD; samDesired: REGSAM; lpSecurityAttributes: PSecurityAttributes; var phkResult: HKEY; lpdwDisposition: PDWORD): Longint; inline;
@@ -162,6 +165,34 @@ begin
     P := PosAny(Delims, S);
     Result[High(Result)] := Copy(S, 1, P-1);
     Delete(S, 1, P);
+  end;
+end;
+
+function MakeStrings(const S: array of FarString): TFarStringDynArray;
+var
+  I: Integer;
+begin
+  SetLength(Result, Length(S));
+  for I:=0 to High(S) do
+    Result[I] := S[I];
+end;
+
+procedure AppendToStrings(var Strings: TFarStringDynArray; S: FarString);
+begin
+  SetLength(Strings, Length(Strings)+1);
+  Strings[High(Strings)] := S;
+end;
+
+function ConcatStrings(const S: array of TFarStringDynArray): TFarStringDynArray;
+var
+  I, J, N: Integer;
+begin
+  for I:=0 to High(S) do
+  begin
+    N := Length(Result);
+    SetLength(Result, Length(Result)+Length(S[I]));
+    for J:=0 to High(S[I]) do
+      Result[N+J] := S[I][J];
   end;
 end;
 

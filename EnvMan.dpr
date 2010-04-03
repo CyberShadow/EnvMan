@@ -12,7 +12,8 @@ library EnvMan;
   * better error checking?
 }
 
-uses Windows, Types, {$IFDEF UNICODE}PluginW{$ELSE}Plugin{$ENDIF}, PluginEx;
+uses
+  Windows, Types, {$IFDEF UNICODE}PluginW{$ELSE}Plugin{$ENDIF}, PluginEx;
 
 type
   TMessage = (
@@ -33,6 +34,9 @@ type
     MEnvEdited1,
     MEnvEdited2,
     MEnvEdited3,
+    MNewVars,
+    MChangedVars,
+    MDeletedVars,
     MContinue,
     MImport,
 
@@ -45,6 +49,11 @@ type
     MConfiguration,
     MIgnoredVariables
   );
+
+function GetMsg(MsgId: TMessage): PFarChar;
+begin
+  Result := FARAPI.GetMsg(FARAPI.ModuleNumber, Integer(MsgId));
+end;
 
 // ****************************************************************************
 
@@ -180,10 +189,7 @@ begin
           Break
         end;
       if not Ignored then
-      begin
-        SetLength(Result, Length(Result)+1);
-        Result[High(Result)] := A[I];
-      end;
+        AppendToStrings(Result, A[I]);
     end;
 end;
 
@@ -310,19 +316,75 @@ begin
   Result := True;
 end;
 
-function EntryDiff(Env1, Env2: TFarStringDynArray): TEntry;
+procedure AppendToCommaList(var S: FarString; S2: FarString);
+begin
+  if S<>'' then
+    S := S + ', ';
+  S := S + S2;
+end;
+
+function DescribeDiff(Env1, Env2: TFarStringDynArray): TFarStringDynArray;
+var
+  I, J: Integer;
+  Found: Boolean;
+  Name, NewValue: FarString;
+
+  NewVars, ChangedVars, DeletedVars: FarString;
+
+begin
+  // Find new and modified variables
+  for J:=0 to High(Env2) do
+  begin
+    Found := False;
+    Name := GetName(Env2[J]);
+    NewValue := GetValue(Env2[J]);
+    for I:=0 to High(Env1) do
+      if GetName(Env1[I])=Name then
+      begin
+        Found := True;
+        if NewValue<>GetValue(Env1[I]) then
+          AppendToCommaList(ChangedVars, Name);
+        Break;
+      end;
+    if not Found then
+      AppendToCommaList(NewVars, Name);
+  end;
+
+  // Find deleted variables
+  for I:=0 to High(Env1) do
+  begin
+    Name := GetName(Env1[I]);
+    Found := False;
+    for J:=0 to High(Env2) do
+      if GetName(Env2[J])=Name then
+      begin
+        Found := True;
+        Break
+      end;
+    
+    if not Found then
+      AppendToCommaList(DeletedVars, Name);
+  end;
+
+  Result := nil;
+  if NewVars<>'' then
+    AppendToStrings(Result, GetMsg(MNewVars) + NewVars);
+  if ChangedVars<>'' then
+    AppendToStrings(Result, GetMsg(MChangedVars) + ChangedVars);
+  if DeletedVars<>'' then
+    AppendToStrings(Result, GetMsg(MDeletedVars) + DeletedVars);
+end;
+
+function MakeDiffEntry(Env1, Env2: TFarStringDynArray): TEntry;
 var
   I, J: Integer;
   Found, FoundEqual: Boolean;
-  Name, NewValue, OldValue: String;
+  Name, NewValue, OldValue: FarString;
 
   procedure AppendSetting(Name, Value: FarString);
   begin
-    SetLength(Result.Vars, Length(Result.Vars)+1);
-    Result.Vars[High(Result.Vars)] := Name+'='+Value;
-    if Result.Name<>'' then
-      Result.Name := Result.Name + ', ';
-    Result.Name := Result.Name + Name;
+    AppendToStrings(Result.Vars, Name+'='+Value);
+    AppendToCommaList(Result.Name, Name);
   end;
 
 begin
@@ -370,11 +432,6 @@ begin
 end;
 
 // ****************************************************************************
-
-function GetMsg(MsgId: TMessage): PFarChar;
-begin
-  Result := FARAPI.GetMsg(FARAPI.ModuleNumber, Integer(MsgId));
-end;
 
 function DoConfigure(IgnoredVariables: String): Boolean;
 const
@@ -548,19 +605,16 @@ begin
   Env := ReadEnvironment;
   if not Quiet and not StringsEqual(LastUpdate, Env) then
   begin
-    I := Message(FMSG_WARNING, [
-      GetMsg(MWarning),
-      GetMsg(MEnvEdited1),
-      GetMsg(MEnvEdited2),
-      GetMsg(MEnvEdited3),
-      GetMsg(MContinue),
-      GetMsg(MCancel),
-      GetMsg(MImport)], 3);
+    I := Message(FMSG_WARNING, ConcatStrings([
+      MakeStrings([GetMsg(MWarning), GetMsg(MEnvEdited1), GetMsg(MEnvEdited2), GetMsg(MEnvEdited3)]),
+      DescribeDiff(LastUpdate, Env),
+      MakeStrings([GetMsg(MContinue), GetMsg(MCancel), GetMsg(MImport)])
+      ]), 3);
     if (I=1) or (I=-1) then
       Exit;
     if I=2 then // import
     begin
-      Entry := EntryDiff(LastUpdate, Env);
+      Entry := MakeDiffEntry(LastUpdate, Env);
       Entry.Name := 'Imported: ' + Entry.Name;
       Entry.Enabled := True;
       if EditEntry(Entry, MImportCaption) then

@@ -17,6 +17,9 @@
 "The environment was modified since EnvMan's last update."
 "If you continue, EnvMan will overwrite these changes."
 "Alternatively, you may import these changes as a new EnvMan setting."
+"New variables: "
+"Changed variables: "
+"Deleted variables: "
 "Continue"
 "Import..."
 
