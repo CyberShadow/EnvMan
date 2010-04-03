@@ -390,33 +390,33 @@ var
 begin
   Dialog := TFarDialog.Create;
   try
-    {..} Dialog.Add(DI_DOUBLEBOX,        3,     1, W-1-3   , H-1-1, GetMsg(Caption) );
+    Dialog.Add(DI_DOUBLEBOX, 3, 1, W-1-3, H-1-1, GetMsg(Caption));
     
-    N := Dialog.Add(DI_EDIT     ,       11,     2, W-1-5-13,     2, Entry.Name      );
+    N := Dialog.Add(DI_EDIT, 11, 2, W-1-5-13, 2, Entry.Name);
     Dialog.Items[N].Param.History := 'EnvVarsName';
     Dialog.Items[N].Flags := DIF_HISTORY;
     if Entry.Name='' then
       Dialog.Items[N].Focus := 1;
     
-    N := Dialog.Add(DI_CHECKBOX , W-1-5-10,     2,        0,     2, GetMsg(MEnabled));
+    N := Dialog.Add(DI_CHECKBOX, W-1-5-10, 2, 0, 2, GetMsg(MEnabled));
     Dialog.Items[N].Param.Selected := Integer(Entry.Enabled);
 
-    {..} Dialog.Add(DI_TEXT     ,        5,     2,       10,     2, GetMsg(MName)   );
+    Dialog.Add(DI_TEXT, 5, 2, 10, 2, GetMsg(MName));
 
     SetLength(Entry.Vars, Rows);
     for I:=0 to Rows-1 do
     begin
-    N := Dialog.Add(DI_EDIT     ,        5,   4+I,    W-1-5,   4+I, Entry.Vars[I]   );
-    Dialog.Items[N].Flags := DIF_EDITOR;
-    if (I=0) and (Entry.Name<>'') then
-      Dialog.Items[N].Focus := 1;
+      N := Dialog.Add(DI_EDIT, 5, 4+I, W-1-5, 4+I, Entry.Vars[I]);
+      Dialog.Items[N].Flags := DIF_EDITOR;
+      if (I=0) and (Entry.Name<>'') then
+        Dialog.Items[N].Focus := 1;
     end;
 
-    N := Dialog.Add(DI_BUTTON   ,        0, H-1-2,        0,     0, GetMsg(MOK)     );
+    N := Dialog.Add(DI_BUTTON, 0, H-1-2, 0, 0, GetMsg(MOK));
     Dialog.Items[N].Flags := DIF_CENTERGROUP;
     Dialog.Items[N].DefaultButton := 1;
     
-    N := Dialog.Add(DI_BUTTON   ,        0, H-1-2,        0,     0, GetMsg(MCancel) );
+    N := Dialog.Add(DI_BUTTON, 0, H-1-2, 0, 0, GetMsg(MCancel));
     Dialog.Items[N].Flags := DIF_CENTERGROUP;
 
     Result := False;
