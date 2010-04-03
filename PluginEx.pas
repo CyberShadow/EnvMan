@@ -56,7 +56,7 @@ type
   {$ENDIF}
   end;
 
-function Message(Flags: DWORD; const Lines: array of FarString; ButtonCount: Integer; HelpTopic: PChar = nil): Integer;
+function Message(Flags: DWORD; const Lines: array of FarString; ButtonCount: Integer; HelpTopic: PFarChar = nil): Integer;
 
 var
   FARAPI: TPluginStartupInfo;
@@ -187,6 +187,7 @@ function ConcatStrings(const S: array of TFarStringDynArray): TFarStringDynArray
 var
   I, J, N: Integer;
 begin
+  Result := nil;
   for I:=0 to High(S) do
   begin
     N := Length(Result);
@@ -299,7 +300,7 @@ end;
 
 // ************************************************************************************************************************************************************
 
-function Message(Flags: DWORD; const Lines: array of FarString; ButtonCount: Integer; HelpTopic: PChar = nil): Integer;
+function Message(Flags: DWORD; const Lines: array of FarString; ButtonCount: Integer; HelpTopic: PFarChar = nil): Integer;
 begin
   Result := FARAPI.Message(FARAPI.ModuleNumber, Flags, HelpTopic, PPCharArray(@Lines[0]), Length(Lines), ButtonCount);
 end;
