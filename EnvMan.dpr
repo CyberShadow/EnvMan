@@ -60,7 +60,7 @@ end;
 var
   RegKey: FarString;
 
-function RegGetString(Key: HKEY; Name: PFarChar; Default: FarString = ''): FarString;
+function RegGetStringRaw(Key: HKEY; Name: PFarChar; Default: FarString = ''): FarString;
 var
   R: Integer;
   Size: Cardinal;
@@ -77,9 +77,29 @@ begin
     Exit;
 
   R := RegQueryValueExF(Key, Name, nil, nil, @Result[1], @Size);
+  if R<>ERROR_SUCCESS then
+    Result := Default;
+end;
 
-  if R=ERROR_SUCCESS then
-    Result := CharToOemStr(Result)
+function RegGetString(Key: HKEY; Name: PFarChar; Default: FarString = ''): PFarChar;
+begin
+  Result := PFarChar(RegGetStringRaw(Key, Name, Default {+ #0}));
+  {$IFNDEF UNICODE}
+  CharToOem(Result, Result);
+  {$ENDIF}
+end;
+
+function RegGetStrings(Key: HKEY; Name: PFarChar): TFarStringDynArray;
+{$IFNDEF UNICODE}
+var
+  I: Integer;
+{$ENDIF}
+begin
+  Result := NullStringsToArray(PFarChar(RegGetStringRaw(Key, Name)));
+  {$IFNDEF UNICODE}
+  for I:=0 to High(Result) do
+    CharToOem(PFarChar(Result[I]), PFarChar(Result[I]));
+  {$ENDIF}
 end;
 
 function RegGetInt(Key: HKEY; Name: PFarChar): Integer;
@@ -91,12 +111,31 @@ begin
   RegQueryValueExF(Key, Name, nil, nil, @Result, @Size);
 end;
 
-procedure RegSetString(Key: HKEY; Name: PFarChar; Value: FarString; RegType: Cardinal = REG_SZ);
+procedure RegSetStringRaw(Key: HKEY; Name: PFarChar; Value: FarString; RegType: Cardinal);
+begin
+  RegSetValueExF(Key, Name, 0, RegType, @Value[1], Length(Value) * SizeOf(FarChar));
+end;
+
+procedure RegSetString(Key: HKEY; Name: PFarChar; Value: FarString);
 begin
   {$IFNDEF UNICODE}
   OemToChar(@Value[1], @Value[1]);
   {$ENDIF}
-  RegSetValueExF(Key, Name, 0, RegType, @Value[1], Length(Value) * SizeOf(FarChar));
+  RegSetStringRaw(Key, Name, Value+#0, REG_SZ);
+end;
+
+procedure RegSetStrings(Key: HKEY; Name: PFarChar; Value: TFarStringDynArray);
+{$IFNDEF UNICODE}
+var
+  I: Integer;
+{$ENDIF}
+begin
+  {$IFNDEF UNICODE}
+  for I:=0 to High(Value) do
+    OemToChar(@Value[I][1], @Value[I][1]);
+  {$ENDIF}
+  
+  RegSetStringRaw(Key, Name, ArrayToNullStrings(Value), REG_MULTI_SZ);
 end;
 
 procedure RegSetInt(Key: HKEY; Name: PFarChar; Value: Integer);
@@ -129,7 +168,7 @@ var
   Key: HKEY;
 begin
   Key := OpenPluginKey;
-  RegSetString(Key, Name, Value+#0);
+  RegSetString(Key, Name, Value);
   RegCloseKey(Key);
 end;
 
@@ -256,8 +295,8 @@ begin
         Exit;
       try
         SetLength(Result, Length(Result)+1);
-        Result[High(Result)].Name := PFarChar(RegGetString(SubKey, nil));
-        Result[High(Result)].Vars := NullStringsToArray(PFarChar(RegGetString(SubKey, 'Vars')));
+        Result[High(Result)].Name := RegGetString(SubKey, nil);
+        Result[High(Result)].Vars := RegGetStrings(SubKey, 'Vars');
         Result[High(Result)].Enabled := Boolean(RegGetInt(SubKey, 'Enabled'));
       finally
         RegCloseKey(SubKey);
@@ -478,8 +517,8 @@ var
   Key: HKEY;
 begin
   Key := OpenEntryKey(Index);
-  RegSetString(Key, nil, Entry.Name+#0);
-  RegSetString(Key, 'Vars', ArrayToNullStrings(Entry.Vars), REG_MULTI_SZ);
+  RegSetString(Key, nil, Entry.Name);
+  RegSetStrings(Key, 'Vars', Entry.Vars);
   RegSetInt(Key, 'Enabled', Ord(Entry.Enabled));
   RegCloseKey(Key);
 end;
