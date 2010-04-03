@@ -35,6 +35,22 @@ function GetEnvironmentStringsF: PFarChar; inline;
 function FreeEnvironmentStringsF(EnvBlock: PFarChar): BOOL; inline;
 function ExpandEnvironmentStringsF(lpSrc: PFarChar; lpDst: PFarChar; nSize: DWORD): DWORD; inline;
 
+type
+  TFarDialog = class
+    Items: array of TFarDialogItem;
+    function Add(ItemType: Integer; X1, Y1, X2, Y2: Integer; InitialData: FarString): Integer;
+    function Run(W, H: Integer; HelpTopic: PFarChar = nil): Integer;
+    function GetData(Index: Integer): FarString;
+  {$IFDEF UNICODE}
+    destructor Destroy; override;
+  {$ENDIF}
+  private
+  {$IFDEF UNICODE}
+    Data: TFarStringDynArray;
+    Handle: THandle;
+  {$ENDIF}
+  end;
+
 var
   FARAPI: TPluginStartupInfo;
 
@@ -154,5 +170,57 @@ begin
 end;
 
 // ************************************************************************************************************************************************************
+
+function TFarDialog.Add(ItemType: Integer; X1, Y1, X2, Y2: Integer; InitialData: FarString): Integer;
+var
+  NewItem: PFarDialogItem;
+begin
+  SetLength(Items, Length(Items)+1);
+  Result := High(Items);
+  NewItem := @Items[Result];
+  FillChar(NewItem^, SizeOf(NewItem^), 0);
+
+  NewItem.ItemType := ItemType;
+  NewItem.X1 := X1;
+  NewItem.Y1 := Y1;
+  NewItem.X2 := X2;
+  NewItem.Y2 := Y2;
+  
+  {$IFNDEF UNICODE}
+  CopyStrToBuf(InitialData, NewItem.Data.Data, SizeOf(NewItem.Data.Data));
+  {$ELSE}
+  SetLength(Data, Length(Items));
+  Data[Result] := InitialData;
+  NewItem.PtrData := @Data[Result][1];
+  NewItem.MaxLen := 0;
+  {$ENDIF}
+end;
+
+function TFarDialog.Run(W, H: Integer; HelpTopic: PFarChar = nil): Integer;
+begin
+  {$IFNDEF UNICODE}
+  Result := FARAPI.Dialog(FARAPI.ModuleNumber, -1, -1, W, H, HelpTopic, @Items[0], Length(Items));
+  {$ELSE}
+  Handle := FARAPI.DialogInit(FARAPI.ModuleNumber, -1, -1, W, H, HelpTopic, @Items[0], Length(Items), 0, 0, nil, 0);
+  Result := FARAPI.DialogRun(Handle);
+  {$ENDIF}
+end;
+
+{$IFDEF UNICODE}
+destructor TFarDialog.Destroy;
+begin
+  FARAPI.DialogFree(Handle);
+  inherited;
+end;
+{$ENDIF}
+
+function TFarDialog.GetData(Index: Integer): FarString;
+begin
+  {$IFNDEF UNICODE}
+  Result := PFarChar(@Items[Index].Data.Data[0])
+  {$ELSE}
+  Result := PFarChar(FARAPI.SendDlgMessage(Handle, DM_GETCONSTTEXTPTR, Index, 0));
+  {$ENDIF}
+end;
 
 end.

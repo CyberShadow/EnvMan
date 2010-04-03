@@ -382,115 +382,57 @@ const
   H = Rows + 8;
   ItemNr = 6; // not counting rows
   TotalItemNr = ItemNr+Rows;
-var
-  Items: array[0..TotalItemNr-1] of TFarDialogItem;
-  I: Integer;
-{$IFDEF UNICODE}
-  Data: array[0..TotalItemNr-1] of FarString;
-  Handle: THandle;
-{$ENDIF}
-  
-  procedure SetupData(Index: Integer; InitialData: FarString);
-  begin
-    {$IFNDEF UNICODE}
-    CopyStrToBuf(InitialData, Items[Index].Data.Data, SizeOf(Items[Index].Data.Data));
-    {$ELSE}
-    Data[Index] := InitialData;
-    Items[Index].PtrData := @Data[Index][1];
-    Items[Index].MaxLen := 0;
-    {$ENDIF}
-  end;
 
-  function GetData(Index: Integer): FarString;
-  begin
-    {$IFNDEF UNICODE}
-    Result := PFarChar(@Items[Index].Data.Data[0])
-    {$ELSE}
-    Result := PFarChar(FARAPI.SendDlgMessage(Handle, DM_GETCONSTTEXTPTR, Index, 0));
-    {$ENDIF}
-  end;
+var
+  I, N: Integer;
+  Dialog: TFarDialog;
 
 begin
-  FillChar(Items, SizeOf(Items), 0);
+  Dialog := TFarDialog.Create;
+  try
+    {..} Dialog.Add(DI_DOUBLEBOX,        3,     1, W-1-3   , H-1-1, GetMsg(Caption) );
+    
+    N := Dialog.Add(DI_EDIT     ,       11,     2, W-1-5-13,     2, Entry.Name      );
+    Dialog.Items[N].Param.History := 'EnvVarsName';
+    Dialog.Items[N].Flags := DIF_HISTORY;
+    if Entry.Name='' then
+      Dialog.Items[N].Focus := 1;
+    
+    N := Dialog.Add(DI_CHECKBOX , W-1-5-10,     2,        0,     2, GetMsg(MEnabled));
+    Dialog.Items[N].Param.Selected := Integer(Entry.Enabled);
 
-  Items[0].ItemType := DI_DOUBLEBOX;
-  Items[0].X1 := 3;
-  Items[0].Y1 := 1;
-  Items[0].X2 := W-1-3;
-  Items[0].Y2 := H-1-1;
-  SetupData(0, GetMsg(Caption));
+    {..} Dialog.Add(DI_TEXT     ,        5,     2,       10,     2, GetMsg(MName)   );
 
-  Items[1].ItemType := DI_EDIT;
-  Items[1].X1 := 11;
-  Items[1].Y1 := 2;
-  Items[1].X2 := W-1-5-13;
-  Items[1].Y2 := 2;
-  Items[1].Param.History := 'EnvVarsName';
-  Items[1].Flags := DIF_HISTORY;
-  if Entry.Name='' then
-    Items[1].Focus := 1;
-  SetupData(1, Entry.Name);
-
-  Items[2].ItemType := DI_CHECKBOX;
-  Items[2].X1 := W-1-5-10;
-  Items[2].Y1 := 2;
-  Items[2].Y2 := 2;
-  Items[2].Param.Selected := Integer(Entry.Enabled);
-  SetupData(2, GetMsg(MEnabled));
-
-  Items[3].ItemType := DI_TEXT;
-  Items[3].X1 := 5;
-  Items[3].Y1 := 2;
-  Items[3].X2 := 10;
-  Items[3].Y2 := 2;
-  SetupData(3, GetMsg(MName));
-
-  for I:=0 to Rows-1 do
-  begin
-    Items[4+I].ItemType := DI_EDIT;
-    Items[4+I].X1 := 5;
-    Items[4+I].Y1 := 4+I;
-    Items[4+I].X2 := W-1-5;
-    Items[4+I].Y2 := 4+I;
-    Items[4+I].Flags := DIF_EDITOR;
+    SetLength(Entry.Vars, Rows);
+    for I:=0 to Rows-1 do
+    begin
+    N := Dialog.Add(DI_EDIT     ,        5,   4+I,    W-1-5,   4+I, Entry.Vars[I]   );
+    Dialog.Items[N].Flags := DIF_EDITOR;
     if (I=0) and (Entry.Name<>'') then
-      Items[4+I].Focus := 1;
-    if I<Length(Entry.Vars) then
-      SetupData(4+I, Entry.Vars[I]);
+      Dialog.Items[N].Focus := 1;
+    end;
+
+    N := Dialog.Add(DI_BUTTON   ,        0, H-1-2,        0,     0, GetMsg(MOK)     );
+    Dialog.Items[N].Flags := DIF_CENTERGROUP;
+    Dialog.Items[N].DefaultButton := 1;
+    
+    N := Dialog.Add(DI_BUTTON   ,        0, H-1-2,        0,     0, GetMsg(MCancel) );
+    Dialog.Items[N].Flags := DIF_CENTERGROUP;
+
+    Result := False;
+    N := Dialog.Run(W, H, 'Editor');
+    if N<>4+Rows then
+      Exit;
+
+    Entry.Name := Dialog.GetData(1);
+    Entry.Enabled := Boolean(Dialog.Items[2].Param.Selected);
+    for I:=0 to Rows-1 do
+      Entry.Vars[I] := Dialog.GetData(4+I);
+    
+    Result := True;
+  finally
+    Dialog.Free;
   end;
-
-  Items[4+Rows].ItemType := DI_BUTTON;
-  Items[4+Rows].Y1 := H-1-2;
-  Items[4+Rows].Flags := DIF_CENTERGROUP;
-  Items[4+Rows].DefaultButton := 1;
-  SetupData(4+Rows, GetMsg(MOK));
-
-  Items[5+Rows].ItemType := DI_BUTTON;
-  Items[5+Rows].Y1 := H-1-2;
-  Items[5+Rows].Flags := DIF_CENTERGROUP;
-  SetupData(5+Rows, GetMsg(MCancel));
-
-  Result := False;
-  {$IFNDEF UNICODE}
-  I := FARAPI.Dialog(FARAPI.ModuleNumber, -1, -1, W, H, 'Editor', @Items[0], Length(Items));
-  {$ELSE}
-  Handle := FARAPI.DialogInit(FARAPI.ModuleNumber, -1, -1, W, H, 'Editor', @Items[0], Length(Items), 0, 0, nil, 0);
-  I := FARAPI.DialogRun(Handle);
-  {$ENDIF}
-  if I<>4+Rows then
-  begin
-    {$IFDEF UNICODE}FARAPI.DialogFree(Handle);{$ENDIF}
-    Exit;
-  end;
-
-  SetLength(Entry.Vars, 1);
-  Entry.Name := GetData(1);
-  Entry.Enabled := Boolean(Items[2].Param.Selected);
-  SetLength(Entry.Vars, Rows);
-  for I:=0 to Rows-1 do
-    Entry.Vars[I] := GetData(4+I);
-  {$IFDEF UNICODE}FARAPI.DialogFree(Handle);{$ENDIF}
-  Result := True;
 end;
 
 procedure ShowEntryMenu(Quiet: Boolean);
