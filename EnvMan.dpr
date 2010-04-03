@@ -363,105 +363,58 @@ begin
   S := S + S2;
 end;
 
-function DescribeDiff(Env1, Env2: TFarStringDynArray; var AllVars: FarString): TFarStringDynArray;
+function DescribeDiff(NewVars, ChangedVars, DeletedVars: TFarStringDynArray): TFarStringDynArray;
+begin
+  Result := nil;
+  if Length(NewVars)<>0 then
+    AppendToStrings(Result, GetMsg(MNewVars) + Join(NewVars, ', '));
+  if Length(ChangedVars)<>0 then
+    AppendToStrings(Result, GetMsg(MChangedVars) + Join(ChangedVars, ', '));
+  if Length(DeletedVars)<>0 then
+    AppendToStrings(Result, GetMsg(MDeletedVars) + Join(DeletedVars, ', '));
+end;
+
+function MakeDiffEntry(Env1, Env2: TFarStringDynArray; var NewVars, ChangedVars, DeletedVars: TFarStringDynArray): TEntry;
 var
   I, J: Integer;
   Found: Boolean;
-  Name, NewValue: FarString;
-
-  NewVars, ChangedVars, DeletedVars: FarString;
-
-begin
-  // Find new and modified variables
-  for J:=0 to High(Env2) do
-  begin
-    Found := False;
-    Name := GetName(Env2[J]);
-    NewValue := GetValue(Env2[J]);
-    for I:=0 to High(Env1) do
-      if GetName(Env1[I])=Name then
-      begin
-        Found := True;
-        if NewValue<>GetValue(Env1[I]) then
-          AppendToCommaList(ChangedVars, Name);
-        Break;
-      end;
-    if not Found then
-      AppendToCommaList(NewVars, Name);
-  end;
-
-  // Find deleted variables
-  for I:=0 to High(Env1) do
-  begin
-    Name := GetName(Env1[I]);
-    Found := False;
-    for J:=0 to High(Env2) do
-      if GetName(Env2[J])=Name then
-      begin
-        Found := True;
-        Break
-      end;
-    
-    if not Found then
-      AppendToCommaList(DeletedVars, Name);
-  end;
-
-  Result := nil;
-  AllVars := '';
-  if NewVars<>'' then
-  begin
-    AppendToStrings(Result, GetMsg(MNewVars) + NewVars);
-    AppendToCommaList(AllVars, NewVars);
-  end;
-  if ChangedVars<>'' then
-  begin
-    AppendToStrings(Result, GetMsg(MChangedVars) + ChangedVars);
-    AppendToCommaList(AllVars, ChangedVars);
-  end;
-  if DeletedVars<>'' then
-  begin
-    AppendToStrings(Result, GetMsg(MDeletedVars) + DeletedVars);
-    AppendToCommaList(AllVars, DeletedVars);
-  end;
-end;
-
-function MakeDiffEntry(Env1, Env2: TFarStringDynArray): TEntry;
-var
-  I, J: Integer;
-  Found, FoundEqual: Boolean;
   Name, NewValue, OldValue: FarString;
 
-  procedure AppendSetting(Name, Value: FarString);
+  procedure AppendSetting(Name, Value: FarString; var List: TFarStringDynArray);
   begin
     AppendToStrings(Result.Vars, Name+'='+Value);
-    AppendToCommaList(Result.Name, Name);
+    AppendToStrings(List, Name);
   end;
 
 begin
+  NewVars := nil;
+  ChangedVars := nil;
+  DeletedVars := nil;
+  
   // Find new and modified variables
   for J:=0 to High(Env2) do
   begin
-    FoundEqual := False;
+    Found := False;
     Name := GetName(Env2[J]);
     NewValue := GetValue(Env2[J]);
     for I:=0 to High(Env1) do
       if GetName(Env1[I])=Name then
       begin
+        Found := True;
         OldValue := GetValue(Env1[I]);
-        if NewValue=OldValue then
-          FoundEqual := True
-        else
+        if NewValue<>OldValue then
         begin
           if Copy(NewValue, 1, Length(OldValue))=OldValue then // append
             NewValue := '%'+Name+'%'+Copy(NewValue, Length(OldValue)+1, MaxInt)
           else
           if Copy(NewValue, Length(NewValue)-Length(OldValue)+1, Length(OldValue))=OldValue then // prepend
             NewValue := Copy(NewValue, Length(NewValue)-Length(OldValue)+1, MaxInt)+'%'+Name+'%';
+          AppendSetting(Name, NewValue, ChangedVars);
         end;
         Break;
       end;
-    if not FoundEqual then
-      AppendSetting(Name, NewValue);
+    if not Found then
+      AppendSetting(Name, NewValue, NewVars);
   end;
 
   // Find deleted variables
@@ -477,7 +430,7 @@ begin
       end;
     
     if not Found then
-      AppendSetting(Name, '');
+      AppendSetting(Name, '', DeletedVars);
   end;
 end;
 
@@ -638,7 +591,7 @@ var
   Key: HKEY;
   Env, NewEnv: TFarStringDynArray;
   InitialEntries: TEntryDynArray;
-  AllVars: FarString;
+  NewVars, ChangedVars, DeletedVars, AllVars: TFarStringDynArray;
 const
   VK_CTRLUP   = VK_UP   or (PKF_CONTROL shl 16);
   VK_CTRLDOWN = VK_DOWN or (PKF_CONTROL shl 16);
@@ -659,18 +612,20 @@ begin
   Env := ReadEnvironment;
   if not Quiet and not StringsEqual(LastUpdate, Env) then
   begin
+    Entry := MakeDiffEntry(LastUpdate, Env, NewVars, ChangedVars, DeletedVars);
+    AllVars := ConcatStrings([NewVars, ChangedVars, DeletedVars]);
+    Entry.Name := 'Imported: ' + Join(AllVars, ', ');
+    Entry.Enabled := True;
+
     I := Message(FMSG_WARNING, ConcatStrings([
       MakeStrings([GetMsg(MWarning), GetMsg(MEnvEdited1), GetMsg(MEnvEdited2), GetMsg(MEnvEdited3)]),
-      DescribeDiff(LastUpdate, Env, AllVars),
+      DescribeDiff(NewVars, ChangedVars, DeletedVars),
       MakeStrings([GetMsg(MContinue), GetMsg(MCancel), GetMsg(MImport), GetMsg(MIgnore)])
       ]), 4);
     if (I=1) or (I=-1) then
       Exit;
     if I=2 then // import
     begin
-      Entry := MakeDiffEntry(LastUpdate, Env);
-      Entry.Name := 'Imported: ' + Entry.Name;
-      Entry.Enabled := True;
       if EditEntry(Entry, MImportCaption) then
       begin
         Entries := ReadEntries;
@@ -682,7 +637,7 @@ begin
     else
     if I=3 then // ignore
     begin
-      if not DoConfigure(GetIgnoredVariables+','+Join(Split(AllVars, ', '), ',')) then
+      if not DoConfigure(GetIgnoredVariables+','+Join(AllVars, ',')) then
         Exit;
       Env := ReadEnvironment;
       LastUpdate := Env;
