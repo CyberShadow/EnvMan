@@ -40,7 +40,10 @@ type
     MNoChange2,
     MNoChange3,
     MOverwrite,
-    MKeep
+    MKeep,
+
+    MConfiguration,
+    MIgnoredVariables
   );
 
 // ****************************************************************************
@@ -79,7 +82,7 @@ begin
   RegQueryValueExF(Key, Name, nil, nil, @Result, @Size);
 end;
 
-procedure RegSetString(Key: HKEY; Name: PFarChar; Value: FarString; RegType: Cardinal);
+procedure RegSetString(Key: HKEY; Name: PFarChar; Value: FarString; RegType: Cardinal = REG_SZ);
 begin
   {$IFNDEF UNICODE}
   OemToChar(@Value[1], @Value[1]);
@@ -96,6 +99,29 @@ function OpenPluginKey: HKEY;
 begin
   Result := 0;
   RegCreateKeyExF(HKEY_CURRENT_USER, PFarChar(RegKey), 0, nil, 0, KEY_ALL_ACCESS, nil, Result, nil);
+end;
+
+function GetPluginString(Name: PFarChar; Default: FarString = ''): FarString;
+var
+  Key: HKEY;
+begin
+  Key := OpenPluginKey;
+  Result := RegGetString(Key, Name, Default);
+  RegCloseKey(Key);
+end;
+
+function GetIgnoredVariables: FarString;
+begin
+  Result := GetPluginString('IgnoredVariables', 'FARENV_EXPORT_HWND');
+end;
+
+procedure SetPluginString(Name: PFarChar; Value: FarString);
+var
+  Key: HKEY;
+begin
+  Key := OpenPluginKey;
+  RegSetString(Key, Name, Value+#0);
+  RegCloseKey(Key);
 end;
 
 function OpenEntryKey(Index: Integer): HKEY;
@@ -132,16 +158,32 @@ begin
 end;
 
 // Remove Windows' special environment strings (which start with =)
-function RemoveSpecial(A: TFarStringDynArray): TFarStringDynArray;
+// Also remove "ignored" variables
+function FilterEnv(A: TFarStringDynArray): TFarStringDynArray;
 var
-  I: Integer;
+  I, J: Integer;
+  IgnoredVariables: TFarStringDynArray;
+  Ignored: Boolean;
+  Name: FarString;
 begin
   Result := nil;
+  IgnoredVariables := SplitByAny(GetIgnoredVariables, ',;');
   for I:=0 to High(A) do
     if (Length(A[I])>0) and (A[I][1] <> '=') then
     begin
-      SetLength(Result, Length(Result)+1);
-      Result[High(Result)] := A[I];
+      Name := GetName(A[I]);
+      Ignored := False;
+      for J:=0 to High(IgnoredVariables) do
+        if Name=IgnoredVariables[J] then
+        begin
+          Ignored := True;
+          Break
+        end;
+      if not Ignored then
+      begin
+        SetLength(Result, Length(Result)+1);
+        Result[High(Result)] := A[I];
+      end;
     end;
 end;
 
@@ -150,7 +192,7 @@ var
   Env: PFarChar;
 begin
   Env := GetEnvironmentStringsF;
-  Result := RemoveSpecial(NullStringsToArray(Env));
+  Result := FilterEnv(NullStringsToArray(Env));
   FreeEnvironmentStringsF(Env);
 end;
 
@@ -334,36 +376,44 @@ begin
   Result := FARAPI.GetMsg(FARAPI.ModuleNumber, Integer(MsgId));
 end;
 
-{$IFDEF UNICODE}
-procedure SetStartupInfoW(var psi: TPluginStartupInfo); stdcall;
-{$ELSE}
-procedure SetStartupInfo(var psi: TPluginStartupInfo); stdcall;
-{$ENDIF}
-begin
-  Move(psi, FARAPI, SizeOf(FARAPI));
-  RegKey := FARAPI.RootKey + '\EnvMan';
-  Update;
-end;
-
+function DoConfigure(IgnoredVariables: String): Boolean;
+const
+  W = 75;
+  H = 7;
+  ItemNr = 5;
 var
-  PluginMenuStrings, PluginConfigStrings: array[0..0] of PFarChar;
-
-{$IFDEF UNICODE} 
-procedure GetPluginInfoW(var pi: TPluginInfo); stdcall;
-{$ELSE} 
-procedure GetPluginInfo(var pi: TPluginInfo); stdcall;
-{$ENDIF}
+  Dialog: TFarDialog;
+  Name: PFarChar;
+  N, OK, IIgnoredVariables: Integer;
 begin
-  pi.StructSize := SizeOf(pi);
-  pi.Flags := PF_PRELOAD or PF_EDITOR;
+  Dialog := TFarDialog.Create;
+  try
+    Dialog.Add(DI_DOUBLEBOX, 3, 1, W-1-3, H-1-1, GetMsg(MConfiguration));
+    
+    Name := GetMsg(MIgnoredVariables);
+    
+    Dialog.Add(DI_TEXT, 5, 2, 5+Length(Name), 2, Name);
 
-  PluginMenuStrings[0] := 'Environment Manager';
-  pi.PluginMenuStrings := @PluginMenuStrings;
-  pi.PluginMenuStringsNumber := 1;
+    IIgnoredVariables := Dialog.Add(DI_EDIT, 5+Length(Name), 2, W-1-5, 2, IgnoredVariables);
+    Dialog.Items[IIgnoredVariables].Focus := 1;
+    
+    OK := Dialog.Add(DI_BUTTON, 0, H-1-2, 0, 0, GetMsg(MOK));
+    Dialog.Items[OK].Flags := DIF_CENTERGROUP;
+    Dialog.Items[OK].DefaultButton := 1;
+    
+    N := Dialog.Add(DI_BUTTON, 0, H-1-2, 0, 0, GetMsg(MCancel));
+    Dialog.Items[N].Flags := DIF_CENTERGROUP;
 
-  PluginConfigStrings[0] := 'Environment Manager';
-  pi.PluginConfigStrings := @PluginConfigStrings;
-  pi.PluginConfigStringsNumber := 1;
+    Result := False;
+    N := Dialog.Run(W, H, 'Configuration');
+    if N <> OK then
+      Exit;
+
+    SetPluginString('IgnoredVariables', Dialog.GetData(IIgnoredVariables));
+    Result := True;
+  finally
+    Dialog.Free;
+  end;
 end;
 
 procedure SaveEntry(Index: Integer; var Entry: TEntry);
@@ -371,7 +421,7 @@ var
   Key: HKEY;
 begin
   Key := OpenEntryKey(Index);
-  RegSetString(Key, nil, Entry.Name+#0, REG_SZ);
+  RegSetString(Key, nil, Entry.Name+#0);
   RegSetString(Key, 'Vars', ArrayToNullStrings(Entry.Vars), REG_MULTI_SZ);
   RegSetInt(Key, 'Enabled', Ord(Entry.Enabled));
   RegCloseKey(Key);
@@ -679,6 +729,42 @@ begin
     end;
 end;
 
+// ****************************************************************************
+
+{$IFDEF UNICODE}
+procedure SetStartupInfoW(var psi: TPluginStartupInfo); stdcall;
+{$ELSE}
+procedure SetStartupInfo(var psi: TPluginStartupInfo); stdcall;
+{$ENDIF}
+begin
+  Move(psi, FARAPI, SizeOf(FARAPI));
+  RegKey := FARAPI.RootKey + '\EnvMan';
+  
+  InitialEnvironment := ReadEnvironment;
+  Update;
+end;
+
+var
+  PluginMenuStrings, PluginConfigStrings: array[0..0] of PFarChar;
+
+{$IFDEF UNICODE} 
+procedure GetPluginInfoW(var pi: TPluginInfo); stdcall;
+{$ELSE} 
+procedure GetPluginInfo(var pi: TPluginInfo); stdcall;
+{$ENDIF}
+begin
+  pi.StructSize := SizeOf(pi);
+  pi.Flags := PF_PRELOAD or PF_EDITOR;
+
+  PluginMenuStrings[0] := 'Environment Manager';
+  pi.PluginMenuStrings := @PluginMenuStrings;
+  pi.PluginMenuStringsNumber := 1;
+
+  PluginConfigStrings[0] := 'Environment Manager';
+  pi.PluginConfigStrings := @PluginConfigStrings;
+  pi.PluginConfigStringsNumber := 1;
+end;
+
 {$IFDEF UNICODE}
 function OpenPluginW(OpenFrom: Integer; Item: Integer): THandle; stdcall;
 {$ELSE}
@@ -700,11 +786,21 @@ begin
   Result := INVALID_HANDLE_VALUE;
 end;
 
+{$IFDEF UNICODE}
+function ConfigureW(Item: Integer): Integer; stdcall;
+{$ELSE}
+function Configure(Item: Integer): Integer; stdcall;
+{$ENDIF}
+begin
+  Result := Integer(DoConfigure(GetIgnoredVariables));
+end;
+
+// ****************************************************************************
+
 exports
   {$IFDEF UNICODE}SetStartupInfoW{$ELSE}SetStartupInfo{$ENDIF},
   {$IFDEF UNICODE}GetPluginInfoW{$ELSE}GetPluginInfo{$ENDIF},
-  {$IFDEF UNICODE}OpenPluginW{$ELSE}OpenPlugin{$ENDIF};
+  {$IFDEF UNICODE}OpenPluginW{$ELSE}OpenPlugin{$ENDIF},
+  {$IFDEF UNICODE}ConfigureW{$ELSE}Configure{$ENDIF};
 
-begin
-  InitialEnvironment := ReadEnvironment;
 end.

@@ -18,9 +18,11 @@ started. Then, it applies each enabled entry, one on top of the other.
 The user can "chain" entries by including the old value of the variable
 in the new value, for example: #PATH=%PATH%;C:\ExamplePath#
 
-    To configure and use the plugin, open it from FAR's
+    To set up and use the plugin, open it from FAR's 
 ~"Plugin commands"~@:PluginCommands@ menu. This will bring up the
-~settings list~@MainMenu@.
+~settings list~@MainMenu@. You may also ~configure~@Configuration@ a list 
+of environment variables for EnvMan to ignore using the 
+~"Plugins configuration"~@:PluginsConfig@ menu.
 
 @MainMenu
 $ #EnvMan entry list#
@@ -67,3 +69,11 @@ format #NAME#=#Value#. The value may contain references to other environment
 variables, using the standard syntax #%VARNAME%#. Thus, it is possible to 
 append to an existing environment variable using the syntax 
 #NAME=%NAME%;TextToAppendHere#.
+
+@Configuration
+$ #EnvMan configuration#
+
+    Currently EnvMan has only one configuration option: a list of environment
+variable names to ignore. You may delimit several variables using commas and 
+semicolons. The default setting includes FARENV_EXPORT_HWND, a service 
+variable used by the FarEnv plugin.

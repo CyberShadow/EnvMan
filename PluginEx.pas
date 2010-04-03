@@ -24,6 +24,7 @@ function NullStringsToArray(P: PFarChar): TFarStringDynArray;
 function ArrayToNullStrings(A: TFarStringDynArray): FarString;
 procedure CopyStrToBuf(S: FarString; Buf: PFarChar; BufSize: Integer);
 function IntToStr(I: Integer): FarString; inline;
+function SplitByAny(S, Delims: FarString): TFarStringDynArray;
 
 // ANSI/UNICODE wrappers for WinAPI functions
 function RegCreateKeyExF(hKey: HKEY; lpSubKey: PFarChar; Reserved: DWORD; lpClass: PFarChar; dwOptions: DWORD; samDesired: REGSAM; lpSecurityAttributes: PSecurityAttributes; var phkResult: HKEY; lpdwDisposition: PDWORD): Longint; inline;
@@ -131,6 +132,35 @@ end;
 function IntToStr(I: Integer): FarString; inline;
 begin
   Str(I, Result);
+end;
+
+function PosAny(Delims, S: FarString): Integer;
+var
+  I, P: Integer;
+begin
+  Result := 0;
+  for I := 1 to Length(Delims) do
+  begin
+    P := Pos(Delims[I], S);
+    if (Result=0) or ((P <> 0) and (P < Result)) then
+      Result := P;
+  end;
+end;
+
+function SplitByAny(S, Delims: FarString): TFarStringDynArray;
+var
+  P: Integer;
+begin
+  Result := nil;
+  if S='' then Exit;
+  S := S + Delims[1];
+  while S<>'' do
+  begin
+    SetLength(Result, Length(Result)+1);
+    P := PosAny(Delims, S);
+    Result[High(Result)] := Copy(S, 1, P-1);
+    Delete(S, 1, P);
+  end;
 end;
 
 // ************************************************************************************************************************************************************

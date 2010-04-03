@@ -25,3 +25,6 @@
 "Overwrite the environment with the current settings?"
 "Overwrite"
 "Keep"
+
+"EnvMan Configuration"
+"Ignored variables: "
