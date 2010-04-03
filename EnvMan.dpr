@@ -7,8 +7,6 @@ library EnvMan;
   TODO:
   * allow escaping % in strings
   * Russian help file
-  * "Ignore" setting
-  * Command-line handler
   * better error checking?
 }
 
@@ -48,7 +46,11 @@ type
     MKeep,
 
     MConfiguration,
-    MIgnoredVariables
+    MIgnoredVariables,
+
+    MError,
+    MNoSuchEntry,
+    MBadCommandChar
   );
 
 function GetMsg(MsgId: TMessage): PFarChar;
@@ -800,6 +802,43 @@ begin
     end;
 end;
 
+procedure ProcessCommandLine(PCmdLine: PFarChar);
+var
+  CmdLine, Name: FarString;
+  Entries: TEntryDynArray;
+  I: Integer;
+begin
+  CmdLine := PCmdLine;
+  if Length(CmdLine)=0 then
+    ShowEntryMenu(True)
+  else
+  begin
+    Name := Copy(CmdLine, 2, MaxInt);
+    Entries := ReadEntries;
+    for I:=0 to High(Entries) do
+      if Entries[I].Name = Name then
+      begin
+        if CmdLine[1]='-' then
+          Entries[I].Enabled := False
+        else
+        if CmdLine[1]='+' then
+          Entries[I].Enabled := True
+        else
+        if CmdLine[1]='*' then
+          Entries[I].Enabled := not Entries[I].Enabled
+        else
+        begin
+          Message(FMSG_WARNING or FMSG_MB_OK, [GetMsg(MError), GetMsg(MBadCommandChar)]);
+          Exit;
+        end;
+        SaveEntry(I, Entries[I]);
+        Update;
+        Exit;
+      end;
+    Message(FMSG_WARNING or FMSG_MB_OK, [GetMsg(MError), GetMsg(MNoSuchEntry), Name]);
+  end;
+end;
+
 // ****************************************************************************
 
 {$IFDEF UNICODE}
@@ -834,12 +873,14 @@ begin
   PluginConfigStrings[0] := 'Environment Manager';
   pi.PluginConfigStrings := @PluginConfigStrings;
   pi.PluginConfigStringsNumber := 1;
+
+  pi.CommandPrefix := 'envman';
 end;
 
 {$IFDEF UNICODE}
-function OpenPluginW(OpenFrom: Integer; Item: Integer): THandle; stdcall;
+function OpenPluginW(OpenFrom: Integer; Item: INT_PTR): THandle; stdcall;
 {$ELSE}
-function OpenPlugin(OpenFrom: Integer; Item: Integer): THandle; stdcall;
+function OpenPlugin(OpenFrom: Integer; Item: INT_PTR): THandle; stdcall;
 {$ENDIF}
 var
   FromMacro: Boolean;
@@ -853,7 +894,10 @@ begin
   end;
   {$ENDIF}
 
-  ShowEntryMenu(FromMacro);
+  if OpenFrom=OPEN_COMMANDLINE then
+    ProcessCommandLine(PFarChar(Item))
+  else
+    ShowEntryMenu(FromMacro);
   Result := INVALID_HANDLE_VALUE;
 end;
 

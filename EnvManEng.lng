@@ -32,3 +32,7 @@
 
 "EnvMan Configuration"
 "Ignored variables: "
+
+"Error"
+"No such EnvMan environment entry:"
+"EnvMan command line must begin with +, - or *"
