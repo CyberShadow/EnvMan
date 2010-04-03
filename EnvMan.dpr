@@ -12,19 +12,9 @@ library EnvMan;
   * better error checking?
 }
 
-uses Windows, Types, {$IFDEF UNICODE}PluginW{$ELSE}Plugin{$ENDIF};
+uses Windows, Types, {$IFDEF UNICODE}PluginW{$ELSE}Plugin{$ENDIF}, PluginEx;
 
 type
-{$IFNDEF UNICODE}
-  TFarChar = AnsiChar;
-  PFarChar = PAnsiChar;
-  FarString = AnsiString;
-{$ELSE}
-  FarString = WideString;
-{$ENDIF}
-  FarChar = TFarChar;
-  TFarStringDynArray = array of FarString;
-  
   TMessage = (
     MNewCaption, 
     MEditCaption, 
@@ -53,125 +43,10 @@ type
     MKeep
   );
 
-function PToStr(P: PFarChar): FarString; inline; // work around Delphi's strict type declarations
-begin
-{$IFNDEF UNICODE}
-  Result := PChar(P);
-{$ELSE}
-  Result := PWideChar(P);
-{$ENDIF}
-end;
-
-// ****************************************************************************
-
-function RegCreateKeyExF(hKey: HKEY; lpSubKey: PFarChar; Reserved: DWORD; lpClass: PFarChar; dwOptions: DWORD; samDesired: REGSAM; lpSecurityAttributes: PSecurityAttributes; var phkResult: HKEY; lpdwDisposition: PDWORD): Longint; inline;
-begin
-  Result := {$IFNDEF UNICODE}RegCreateKeyExA{$ELSE}RegCreateKeyExW{$ENDIF}(hKey, lpSubKey, Reserved, lpClass, dwOptions, samDesired, lpSecurityAttributes, phkResult, lpdwDisposition);
-end;
-
-function RegOpenKeyExF(hKey: HKEY; lpSubKey: PFarChar; ulOptions: DWORD; samDesired: REGSAM; var phkResult: HKEY): Longint; inline;
-begin
-  Result := {$IFNDEF UNICODE}RegOpenKeyExA{$ELSE}RegOpenKeyExW{$ENDIF}(hKey, lpSubKey, ulOptions, samDesired, phkResult);
-end;
-
-function RegQueryValueExF(hKey: HKEY; lpValueName: PFarChar; lpReserved: Pointer; lpType: PDWORD; lpData: PByte; lpcbData: PDWORD): Longint; inline;
-begin
-  Result := {$IFNDEF UNICODE}RegQueryValueExA{$ELSE}RegQueryValueExW{$ENDIF}(hKey, lpValueName, lpReserved, lpType, lpData, lpcbData);
-end;
-
-function RegSetValueExF(hKey: HKEY; lpValueName: PFarChar; Reserved: DWORD; dwType: DWORD; lpData: Pointer; cbData: DWORD): Longint; inline;
-begin
-  Result := {$IFNDEF UNICODE}RegSetValueExA{$ELSE}RegSetValueExW{$ENDIF}(hKey, lpValueName, Reserved, dwType, lpData, cbData);
-end;
-
-function RegDeleteKeyF(hKey: HKEY; lpSubKey: PFarChar): Longint; inline;
-begin
-  Result := {$IFNDEF UNICODE}RegDeleteKeyA{$ELSE}RegDeleteKeyW{$ENDIF}(hKey, lpSubKey);
-end;
-
-function SetEnvironmentVariableF(lpName, lpValue: PFarChar): BOOL; inline;
-begin
-  Result := {$IFNDEF UNICODE}SetEnvironmentVariableA{$ELSE}SetEnvironmentVariableW{$ENDIF}(lpName, lpValue);
-end;
-
-function GetEnvironmentStringsF: PFarChar; inline;
-begin
-  Result := {$IFNDEF UNICODE}GetEnvironmentStringsA{$ELSE}GetEnvironmentStringsW{$ENDIF};
-end;
-
-function FreeEnvironmentStringsF(EnvBlock: PFarChar): BOOL; inline;
-begin
-  Result := {$IFNDEF UNICODE}FreeEnvironmentStringsA{$ELSE}FreeEnvironmentStringsW{$ENDIF}(EnvBlock);
-end;
-
-function ExpandEnvironmentStringsF(lpSrc: PFarChar; lpDst: PFarChar; nSize: DWORD): DWORD; inline;
-begin
-  Result := {$IFNDEF UNICODE}ExpandEnvironmentStringsA{$ELSE}ExpandEnvironmentStringsW{$ENDIF}(lpSrc, lpDst, nSize);
-end;
-
-function OemToCharStr(S: FarString): FarString;
-begin
-{$IFNDEF UNICODE}
-  SetLength(Result, Length(S));
-  OemToChar(PFarChar(S), @Result[1]);
-{$ELSE}
-  Result := S;
-{$ENDIF}
-end;
-
-// ****************************************************************************
-
-// Convert a zero-terminated string sequence (which itself is
-// doubly-zero-terminated) to a TStringDynArray.
-function StringsToArray(P: PFarChar): TFarStringDynArray;
-var
-  P2: PFarChar;
-begin
-  SetLength(Result, 0);
-  while P^<>#0 do
-  begin
-    P2 := P;
-    repeat
-      Inc(P2);
-    until P2^=#0;
-    SetLength(Result, Length(Result)+1);
-    Result[High(Result)] := Copy(P, 1, UINT_PTR(P2)-UINT_PTR(P));
-    P := P2;
-    Inc(P);
-  end;
-end;
-
-function ArrayToStrings(A: TFarStringDynArray): FarString;
-var
-  I: Integer;
-begin
-  Result := '';
-  for I:=0 to High(A) do
-    if Length(A[I])>0 then
-      Result := Result + A[I] + #0;
-  Result := Result + #0;
-end;
-
-procedure CopyStrToBuf(S: FarString; Buf: PFarChar; BufSize: Integer);
-begin
-  if Length(S)>BufSize-1 then
-    S := Copy(S, 1, BufSize-1);
-  S := S+#0;
-  Move(S[1], Buf^, Length(S) * SizeOf(FarChar));
-end;
-
-// To avoid pulling in heavy SysUtils unit
-function IntToStr(I: Integer): FarString;
-begin
-  Str(I, Result);
-end;
-
 // ****************************************************************************
 
 var
-  FARAPI: TPluginStartupInfo;
   RegKey: FarString;
-  InitialEnvironment: TFarStringDynArray;
 
 function RegGetString(Key: HKEY; Name: PFarChar): FarString;
 var
@@ -272,7 +147,7 @@ var
   Env: PFarChar;
 begin
   Env := GetEnvironmentStringsF;
-  Result := RemoveSpecial(StringsToArray(Env));
+  Result := RemoveSpecial(NullStringsToArray(Env));
   FreeEnvironmentStringsF(Env);
 end;
 
@@ -331,7 +206,7 @@ begin
       try
         SetLength(Result, Length(Result)+1);
         Result[High(Result)].Name := PFarChar(RegGetString(SubKey, nil));
-        Result[High(Result)].Vars := StringsToArray(PFarChar(RegGetString(SubKey, 'Vars')));
+        Result[High(Result)].Vars := NullStringsToArray(PFarChar(RegGetString(SubKey, 'Vars')));
         Result[High(Result)].Enabled := Boolean(RegGetInt(SubKey, 'Enabled'));
       finally
         RegCloseKey(SubKey);
@@ -344,7 +219,7 @@ begin
 end;
 
 var
-  LastUpdate: TFarStringDynArray;
+  InitialEnvironment, LastUpdate: TFarStringDynArray;
 
 procedure Update;
 var
@@ -468,7 +343,7 @@ begin
 end;
 
 var
-  PluginMenuStrings: array[0..0] of PFarChar;
+  PluginMenuStrings, PluginConfigStrings: array[0..0] of PFarChar;
 
 {$IFDEF UNICODE} 
 procedure GetPluginInfoW(var pi: TPluginInfo); stdcall;
@@ -482,6 +357,10 @@ begin
   PluginMenuStrings[0] := 'Environment Manager';
   pi.PluginMenuStrings := @PluginMenuStrings;
   pi.PluginMenuStringsNumber := 1;
+
+  PluginConfigStrings[0] := 'Environment Manager';
+  pi.PluginConfigStrings := @PluginConfigStrings;
+  pi.PluginConfigStringsNumber := 1;
 end;
 
 procedure SaveEntry(Index: Integer; var Entry: TEntry);
@@ -490,7 +369,7 @@ var
 begin
   Key := OpenEntryKey(Index);
   RegSetString(Key, nil, Entry.Name+#0, REG_SZ);
-  RegSetString(Key, 'Vars', ArrayToStrings(Entry.Vars), REG_MULTI_SZ);
+  RegSetString(Key, 'Vars', ArrayToNullStrings(Entry.Vars), REG_MULTI_SZ);
   RegSetInt(Key, 'Enabled', Ord(Entry.Enabled));
   RegCloseKey(Key);
 end;

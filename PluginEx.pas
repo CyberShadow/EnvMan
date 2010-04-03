@@ -1,0 +1,158 @@
+// Helper unit for Delphi FAR plugins.
+unit PluginEx;
+
+interface
+
+uses
+  Windows, {$IFDEF UNICODE}PluginW{$ELSE}Plugin{$ENDIF};
+
+type
+{$IFNDEF UNICODE}
+  TFarChar = AnsiChar;
+  PFarChar = PAnsiChar;
+  FarString = AnsiString;
+{$ELSE}
+  FarString = WideString;
+{$ENDIF}
+  FarChar = TFarChar;
+  TFarStringDynArray = array of FarString;
+  
+function PToStr(P: PFarChar): FarString; inline; // work around Delphi's strict type declarations
+function OemToCharStr(S: FarString): FarString;
+function NullStringsToArray(P: PFarChar): TFarStringDynArray;
+function ArrayToNullStrings(A: TFarStringDynArray): FarString;
+procedure CopyStrToBuf(S: FarString; Buf: PFarChar; BufSize: Integer);
+function IntToStr(I: Integer): FarString; inline;
+
+// ANSI/UNICODE wrappers for WinAPI functions
+function RegCreateKeyExF(hKey: HKEY; lpSubKey: PFarChar; Reserved: DWORD; lpClass: PFarChar; dwOptions: DWORD; samDesired: REGSAM; lpSecurityAttributes: PSecurityAttributes; var phkResult: HKEY; lpdwDisposition: PDWORD): Longint; inline;
+function RegOpenKeyExF(hKey: HKEY; lpSubKey: PFarChar; ulOptions: DWORD; samDesired: REGSAM; var phkResult: HKEY): Longint; inline;
+function RegQueryValueExF(hKey: HKEY; lpValueName: PFarChar; lpReserved: Pointer; lpType: PDWORD; lpData: PByte; lpcbData: PDWORD): Longint; inline;
+function RegSetValueExF(hKey: HKEY; lpValueName: PFarChar; Reserved: DWORD; dwType: DWORD; lpData: Pointer; cbData: DWORD): Longint; inline;
+function RegDeleteKeyF(hKey: HKEY; lpSubKey: PFarChar): Longint; inline;
+function SetEnvironmentVariableF(lpName, lpValue: PFarChar): BOOL; inline;
+function GetEnvironmentStringsF: PFarChar; inline;
+function FreeEnvironmentStringsF(EnvBlock: PFarChar): BOOL; inline;
+function ExpandEnvironmentStringsF(lpSrc: PFarChar; lpDst: PFarChar; nSize: DWORD): DWORD; inline;
+
+var
+  FARAPI: TPluginStartupInfo;
+
+implementation
+
+// ************************************************************************************************************************************************************
+
+function PToStr(P: PFarChar): FarString; inline;
+begin
+{$IFNDEF UNICODE}
+  Result := PChar(P);
+{$ELSE}
+  Result := PWideChar(P);
+{$ENDIF}
+end;
+
+function OemToCharStr(S: FarString): FarString;
+begin
+{$IFNDEF UNICODE}
+  SetLength(Result, Length(S));
+  OemToChar(PFarChar(S), @Result[1]);
+{$ELSE}
+  Result := S;
+{$ENDIF}
+end;
+
+// Convert a zero-terminated string sequence (which itself is
+// doubly-zero-terminated) to a TStringDynArray.
+function NullStringsToArray(P: PFarChar): TFarStringDynArray;
+var
+  P2: PFarChar;
+begin
+  SetLength(Result, 0);
+  while P^<>#0 do
+  begin
+    P2 := P;
+    repeat
+      Inc(P2);
+    until P2^=#0;
+    SetLength(Result, Length(Result)+1);
+    Result[High(Result)] := Copy(P, 1, UINT_PTR(P2)-UINT_PTR(P));
+    P := P2;
+    Inc(P);
+  end;
+end;
+
+function ArrayToNullStrings(A: TFarStringDynArray): FarString;
+var
+  I: Integer;
+begin
+  Result := '';
+  for I:=0 to High(A) do
+    if Length(A[I])>0 then
+      Result := Result + A[I] + #0;
+  Result := Result + #0;
+end;
+
+procedure CopyStrToBuf(S: FarString; Buf: PFarChar; BufSize: Integer);
+begin
+  if Length(S)>BufSize-1 then
+    S := Copy(S, 1, BufSize-1);
+  S := S+#0;
+  Move(S[1], Buf^, Length(S) * SizeOf(FarChar));
+end;
+
+// To avoid pulling in heavy SysUtils unit
+function IntToStr(I: Integer): FarString; inline;
+begin
+  Str(I, Result);
+end;
+
+// ************************************************************************************************************************************************************
+
+function RegCreateKeyExF(hKey: HKEY; lpSubKey: PFarChar; Reserved: DWORD; lpClass: PFarChar; dwOptions: DWORD; samDesired: REGSAM; lpSecurityAttributes: PSecurityAttributes; var phkResult: HKEY; lpdwDisposition: PDWORD): Longint; inline;
+begin
+  Result := {$IFNDEF UNICODE}RegCreateKeyExA{$ELSE}RegCreateKeyExW{$ENDIF}(hKey, lpSubKey, Reserved, lpClass, dwOptions, samDesired, lpSecurityAttributes, phkResult, lpdwDisposition);
+end;
+
+function RegOpenKeyExF(hKey: HKEY; lpSubKey: PFarChar; ulOptions: DWORD; samDesired: REGSAM; var phkResult: HKEY): Longint; inline;
+begin
+  Result := {$IFNDEF UNICODE}RegOpenKeyExA{$ELSE}RegOpenKeyExW{$ENDIF}(hKey, lpSubKey, ulOptions, samDesired, phkResult);
+end;
+
+function RegQueryValueExF(hKey: HKEY; lpValueName: PFarChar; lpReserved: Pointer; lpType: PDWORD; lpData: PByte; lpcbData: PDWORD): Longint; inline;
+begin
+  Result := {$IFNDEF UNICODE}RegQueryValueExA{$ELSE}RegQueryValueExW{$ENDIF}(hKey, lpValueName, lpReserved, lpType, lpData, lpcbData);
+end;
+
+function RegSetValueExF(hKey: HKEY; lpValueName: PFarChar; Reserved: DWORD; dwType: DWORD; lpData: Pointer; cbData: DWORD): Longint; inline;
+begin
+  Result := {$IFNDEF UNICODE}RegSetValueExA{$ELSE}RegSetValueExW{$ENDIF}(hKey, lpValueName, Reserved, dwType, lpData, cbData);
+end;
+
+function RegDeleteKeyF(hKey: HKEY; lpSubKey: PFarChar): Longint; inline;
+begin
+  Result := {$IFNDEF UNICODE}RegDeleteKeyA{$ELSE}RegDeleteKeyW{$ENDIF}(hKey, lpSubKey);
+end;
+
+function SetEnvironmentVariableF(lpName, lpValue: PFarChar): BOOL; inline;
+begin
+  Result := {$IFNDEF UNICODE}SetEnvironmentVariableA{$ELSE}SetEnvironmentVariableW{$ENDIF}(lpName, lpValue);
+end;
+
+function GetEnvironmentStringsF: PFarChar; inline;
+begin
+  Result := {$IFNDEF UNICODE}GetEnvironmentStringsA{$ELSE}GetEnvironmentStringsW{$ENDIF};
+end;
+
+function FreeEnvironmentStringsF(EnvBlock: PFarChar): BOOL; inline;
+begin
+  Result := {$IFNDEF UNICODE}FreeEnvironmentStringsA{$ELSE}FreeEnvironmentStringsW{$ENDIF}(EnvBlock);
+end;
+
+function ExpandEnvironmentStringsF(lpSrc: PFarChar; lpDst: PFarChar; nSize: DWORD): DWORD; inline;
+begin
+  Result := {$IFNDEF UNICODE}ExpandEnvironmentStringsA{$ELSE}ExpandEnvironmentStringsW{$ENDIF}(lpSrc, lpDst, nSize);
+end;
+
+// ************************************************************************************************************************************************************
+
+end.
