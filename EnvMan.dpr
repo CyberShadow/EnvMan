@@ -5,9 +5,10 @@ library EnvMan;
 
 {
   TODO:
-  * don't overwrite unmanaged variables
   * allow escaping % in strings
   * Russian help file
+  * "Ignore" setting
+  * Command-line handler
   * better error checking?
 }
 
