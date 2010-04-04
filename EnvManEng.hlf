@@ -4,35 +4,27 @@
 @Contents
 $ #EnvMan#
 
-    This plugin's purpose is to allow quick and easy editing of
-environment variables. It is especially useful for people who use several
-toolchains with program name conflicts, or different versions of the same
-command-line software packages.
+    This plugin's purpose is to allow quick and easy editing of environment variables.
+It is especially useful for people who use several toolchains with program name conflicts, or different versions of the same command-line software packages.
 
-    The plugin allows users to pre-configure sets of environment variable
-settings, and quickly enable or disable these sets at any time. This
-applies not only to PATH, but any other environment variables as well.
+    The plugin allows users to pre-configure sets of environment variable settings, and quickly enable or disable these sets at any time.
+This applies not only to PATH, but any other environment variables as well.
 
-    The plugin saves the state of the environment when FAR Manager is
-started. Then, it applies each enabled entry, one on top of the other.
-The user can "chain" entries by including the old value of the variable
-in the new value, for example: #PATH=%PATH%;C:\ExamplePath#
+    The plugin saves the state of the environment when FAR Manager is started.
+Then, it applies each enabled entry, one on top of the other.
+The user can "chain" entries by including the old value of the variable in the new value, for example: #PATH=%PATH%;C:\ExamplePath#
 
-    To set up and use the plugin, open it from FAR's 
-~"Plugin commands"~@:PluginCommands@ menu. This will bring up the
-~settings list~@MainMenu@. You may also ~configure~@Configuration@ a list 
-of environment variables for EnvMan to ignore using the 
-~"Plugins configuration"~@:PluginsConfig@ menu.
+    To set up and use the plugin, open it from FAR's ~"Plugin commands"~@:PluginCommands@ menu.
+This will bring up the ~settings list~@MainMenu@.
+You may also ~configure~@Configuration@ a list of environment variables for EnvMan to ignore using the ~"Plugins configuration"~@:PluginsConfig@ menu.
 
-    EnvMan is also controllable using the ~command line~@CommandLine@, 
-with the #envman:# prefix. You may use the same syntax with the 
-#callplugin# macro function.
+    EnvMan is also controllable using the ~command line~@CommandLine@, with the #envman:# prefix.
+You may use the same syntax with the #callplugin# macro function.
 
 @MainMenu
 $ #EnvMan entry list#
 
-    This menu allows enabling, disabling, and editing the list of
-available sets of environment variable settings.
+    This menu allows enabling, disabling, and editing the list of available sets of environment variable settings.
 
     The following commands are available:
 
@@ -43,60 +35,50 @@ available sets of environment variable settings.
  #F5#           - copies the selected entry.
  #Ctrl-Up/Down# - moves the current set up or down.
 
-    The commands #Ins#, #F4# and #F5# will ~open a dialog~@Editor@ allowing
-to edit the entry's details. For #Ins# and #F5#, the new entry will be
-inserted if the changes in the dialog are accepted (the dialog is closed by
-selecting #OK#).
+    The commands #Ins#, #F4# and #F5# will ~open a dialog~@Editor@ allowing to edit the entry's details.
+For #Ins# and #F5#, the new entry will be inserted if the changes in the dialog are accepted (the dialog is closed by selecting #OK#).
 
-    Separators can be created by moving an entry past the upper or lower
-edge of the list. Similarly, separators can be removed by moving entries
-in the opposite direction - separators will disappear when there are no
-entries between them and the edge of the list.
+    Separators can be created by moving an entry past the upper or lower edge of the list.
+Similarly, separators can be removed by moving entries in the opposite direction - separators will disappear when there are no entries between them and the edge of the list.
 
     Changes are applied to the environment as soon as the menu is closed.
-If you edited the settings in another FAR instance and would like to apply
-them to the current instance, simply open and close the sets list.
+If you edited the settings in another FAR instance and would like to apply them to the current instance, simply open and close the sets list.
 
 @Editor
 $ #EnvMan editor dialog#
 
     This dialog allows editing one environment variable configuration entry.
 
-    The #Name# and #Enabled# fields are self-explanatory. If you would like
-to force a specific letter as the menu item hotkey, prefix it with #&#.
+    The #Name# and #Enabled# fields are self-explanatory.
+If you would like to force a specific letter as the menu item hotkey, prefix it with #&#.
 Use #&&# to insert a single ampersand.
 
-    The multi-line edit box below defines the changes to the environment 
-performed by the current entry. The format is similar to the format of the 
-standard #set# command (bar the option switches). Each line must be in the 
-format #NAME#=#Value#. The value may contain references to other environment 
-variables, using the standard syntax #%VARNAME%#. Thus, it is possible to 
-append to an existing environment variable using the syntax 
-#NAME=%NAME%;TextToAppendHere#.
+    The multi-line edit box below defines the changes to the environment performed by the current entry.
+The format is similar to the format of the standard #set# command (bar the option switches).
+Each line must be in the format #NAME#=#Value#.
+The value may contain references to other environment variables, using the standard syntax #%VARNAME%#.
+Thus, it is possible to append to an existing environment variable using the syntax #NAME=%NAME%;TextToAppendHere#.
 
 @Configuration
 $ #EnvMan configuration#
 
-    Currently EnvMan has only one configuration option: a list of environment
-variable names to ignore. You may delimit several variables using commas and 
-semicolons. The default setting includes FARENV_EXPORT_HWND, a service 
-variable used by the FarEnv plugin.
+    Currently EnvMan has only one configuration option: a list of environment variable names to ignore.
+You may delimit several variables using commas and semicolons.
+The default setting includes FARENV_EXPORT_HWND, a service variable used by the FarEnv plugin.
 
 @CommandLine
 $ #Command line#
 
-    You may enable, disable or toggle configuration entries using the FAR
-command line and the #envman:# prefix. The syntax is as follows:
+    You may enable, disable or toggle configuration entries using the FAR command line and the #envman:# prefix.
+The syntax is as follows:
 
-    If the command line is empty, EnvMan will display the 
-~entry list~@MainMenu@, but it will not display any warnings regarding 
-external environment/configuration changes. Otherwise, it must begin with 
-either #+#, #-# or #*#. This character represents the operation: enable, 
-disable or toggle, respectively. Following is the entire name of the 
-configuration, without any kind of quoting or escaping.
+    If the command line is empty, EnvMan will display the ~entry list~@MainMenu@, but it will not display any warnings regarding external environment/configuration changes.
+Otherwise, it must begin with either #+#, #-# or #*#.
+This character represents the operation: enable, disable or toggle, respectively.
+Following is the entire name of the configuration, without any kind of quoting or escaping.
 
     Example: #envman:+Delphi# will enable the #Delphi# configuration entry.
 
-    You may also use the same syntax using the experimental #callplugin# 
-~macro~@:KeyMacro@ function. EnvMan's SysID is #0x4D766E45#. The above 
-example as a macro call will look like: #callplugin(0x4D766E45, "+Delphi")#
+    You may also use the same syntax using the experimental #callplugin# ~macro~@:KeyMacro@ function.
+EnvMan's SysID is #0x4D766E45#.
+The above example as a macro call will look like: #callplugin(0x4D766E45, "+Delphi")#
