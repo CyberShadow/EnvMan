@@ -875,6 +875,7 @@ begin
   pi.PluginConfigStringsNumber := 1;
 
   pi.CommandPrefix := 'envman';
+  pi.Reserved := $4D766E45; // 'EnvM'
 end;
 
 {$IFDEF UNICODE}
@@ -886,15 +887,13 @@ var
   FromMacro: Boolean;
 begin
   FromMacro := False;
-  {$IFDEF UNICODE}
   if (OpenFrom and OPEN_FROMMACRO)<>0 then
   begin
     FromMacro := True;
     OpenFrom := OpenFrom and not OPEN_FROMMACRO;
   end;
-  {$ENDIF}
 
-  if OpenFrom=OPEN_COMMANDLINE then
+  if (OpenFrom=OPEN_COMMANDLINE) or FromMacro then
     ProcessCommandLine(PFarChar(Item))
   else
     ShowEntryMenu(FromMacro);

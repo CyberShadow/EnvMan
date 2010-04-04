@@ -25,7 +25,8 @@ of environment variables for EnvMan to ignore using the
 ~"Plugins configuration"~@:PluginsConfig@ menu.
 
     EnvMan is also controllable using the ~command line~@CommandLine@, 
-with the #envman:# prefix. 
+with the #envman:# prefix. You may use the same syntax with the 
+#callplugin# macro function.
 
 @MainMenu
 $ #EnvMan entry list#
@@ -95,3 +96,7 @@ disable or toggle, respectively. Following is the entire name of the
 configuration, without any kind of quoting or escaping.
 
     Example: #envman:+Delphi# will enable the #Delphi# configuration entry.
+
+    You may also use the same syntax using the experimental #callplugin# 
+~macro~@:KeyMacro@ function. EnvMan's SysID is #0x4D766E45#. The above 
+example as a macro call will look like: #callplugin(0x4D766E45, "+Delphi")#

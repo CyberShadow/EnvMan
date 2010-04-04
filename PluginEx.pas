@@ -62,6 +62,10 @@ type
 
 function Message(Flags: DWORD; const Lines: array of FarString; ButtonCount: Integer = 0; HelpTopic: PFarChar = nil): Integer;
 
+{$IFNDEF UNICODE}
+const OPEN_FROMMACRO = $10000; // not in Plugin.pas
+{$ENDIF}
+
 var
   FARAPI: TPluginStartupInfo;
 
