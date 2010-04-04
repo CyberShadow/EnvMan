@@ -16,7 +16,7 @@
 "Warning"
 "The environment was modified since EnvMan's last update."
 "If you continue, EnvMan will overwrite these changes."
-"Alternatively, you may import these changes as a new EnvMan setting."
+"Alternatively, you may import these changes as a new setting."
 "New variables: "
 "Changed variables: "
 "Deleted variables: "
