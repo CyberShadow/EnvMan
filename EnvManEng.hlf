@@ -44,6 +44,8 @@ Similarly, separators can be removed by moving entries in the opposite direction
     Changes are applied to the environment as soon as the menu is closed.
 If you edited the settings in another FAR instance and would like to apply them to the current instance, simply open and close the sets list.
 
+    ~Back to Contents~@Contents@
+
 @Editor
 $ #EnvMan editor dialog#
 
@@ -59,12 +61,16 @@ Each line must be in the format #NAME#=#Value#.
 The value may contain references to other environment variables, using the standard syntax #%VARNAME%#.
 Thus, it is possible to append to an existing environment variable using the syntax #NAME=%NAME%;TextToAppendHere#.
 
+    ~Back to EnvMan entry list~@MainMenu@
+
 @Configuration
 $ #EnvMan configuration#
 
     Currently EnvMan has only one configuration option: a list of environment variable names to ignore.
 You may delimit several variables using commas and semicolons.
 The default setting includes FARENV_EXPORT_HWND, a service variable used by the FarEnv plugin.
+
+    ~Back to Contents~@Contents@
 
 @CommandLine
 $ #Command line#
@@ -82,3 +88,5 @@ Following is the entire name of the configuration, without any kind of quoting o
     You may also use the same syntax using the experimental #callplugin# ~macro~@:KeyMacro@ function.
 EnvMan's SysID is #0x4D766E45#.
 The above example as a macro call will look like: #callplugin(0x4D766E45, "+Delphi")#
+
+    ~Back to Contents~@Contents@
