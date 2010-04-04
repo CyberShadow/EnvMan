@@ -896,7 +896,7 @@ begin
   if (OpenFrom=OPEN_COMMANDLINE) or FromMacro then
     ProcessCommandLine(PFarChar(Item))
   else
-    ShowEntryMenu(FromMacro);
+    ShowEntryMenu(False);
   Result := INVALID_HANDLE_VALUE;
 end;
 
