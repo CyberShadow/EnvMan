@@ -84,11 +84,11 @@ begin
     Result := Default;
 end;
 
-function RegGetString(Key: HKEY; Name: PFarChar; Default: FarString = ''): PFarChar;
+function RegGetString(Key: HKEY; Name: PFarChar; Default: FarString = ''): FarString;
 begin
   Result := PFarChar(RegGetStringRaw(Key, Name, Default {+ #0}));
   {$IFNDEF UNICODE}
-  CharToOem(Result, Result);
+  CharToOem(PFarChar(Result), PFarChar(Result));
   {$ENDIF}
 end;
 
