@@ -509,6 +509,8 @@ begin
   try
     Dialog.Add(DI_DOUBLEBOX, 3, 1, W-1-3, H-1-1, GetMsg(Caption));
     
+    Dialog.Add(DI_TEXT, 5, 2, 10, 2, GetMsg(MName));
+
     N := Dialog.Add(DI_EDIT, 11, 2, W-1-5-13, 2, Entry.Name);
     Dialog.Items[N].Param.History := 'EnvVarsName';
     Dialog.Items[N].Flags := DIF_HISTORY;
@@ -517,8 +519,6 @@ begin
     
     N := Dialog.Add(DI_CHECKBOX, W-1-5-10, 2, 0, 2, GetMsg(MEnabled));
     Dialog.Items[N].Param.Selected := Integer(Entry.Enabled);
-
-    Dialog.Add(DI_TEXT, 5, 2, 10, 2, GetMsg(MName));
 
     SetLength(Entry.Vars, Rows);
     for I:=0 to Rows-1 do
@@ -541,8 +541,8 @@ begin
     if N<>4+Rows then
       Exit;
 
-    Entry.Name := Dialog.GetData(1);
-    Entry.Enabled := Boolean(Dialog.Items[2].Param.Selected);
+    Entry.Name := Dialog.GetData(2);
+    Entry.Enabled := Boolean(Dialog.Items[3].Param.Selected);
     for I:=0 to Rows-1 do
       Entry.Vars[I] := Dialog.GetData(4+I);
     
