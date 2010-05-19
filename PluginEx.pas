@@ -50,15 +50,15 @@ function ExpandEnvironmentStringsF(lpSrc: PFarChar; lpDst: PFarChar; nSize: DWOR
 type
   TFarDialog = class
     Items: array of TFarDialogItem;
-    function Add(ItemType: Integer; X1, Y1, X2, Y2: Integer; InitialData: FarString): Integer;
+    function Add(ItemType, Flags: Integer; X1, Y1, X2, Y2: Integer; InitialData: FarString; MaxLen: Integer = 0): Integer;
     function Run(W, H: Integer; HelpTopic: PFarChar = nil): Integer;
     function GetData(Index: Integer): FarString;
   {$IFDEF UNICODE}
     destructor Destroy; override;
   {$ENDIF}
   private
-  {$IFDEF UNICODE}
     Data: TFarStringDynArray;
+  {$IFDEF UNICODE}
     Handle: THandle;
   {$ENDIF}
   end;
@@ -68,6 +68,8 @@ function Message(Flags: DWORD; const Lines: array of FarString; ButtonCount: Int
 {$IFNDEF UNICODE}
 const OPEN_FROMMACRO = $10000; // not in Plugin.pas
 {$ENDIF}
+
+const DIF_NONE = 0;
 
 var
   FARAPI: TPluginStartupInfo;
@@ -360,7 +362,7 @@ end;
 
 // ************************************************************************************************************************************************************
 
-function TFarDialog.Add(ItemType: Integer; X1, Y1, X2, Y2: Integer; InitialData: FarString): Integer;
+function TFarDialog.Add(ItemType, Flags: Integer; X1, Y1, X2, Y2: Integer; InitialData: FarString; MaxLen: Integer = 0): Integer;
 var
   NewItem: PFarDialogItem;
 begin
@@ -370,13 +372,28 @@ begin
   FillChar(NewItem^, SizeOf(NewItem^), 0);
 
   NewItem.ItemType := ItemType;
+  NewItem.Flags := Flags;
   NewItem.X1 := X1;
   NewItem.Y1 := Y1;
   NewItem.X2 := X2;
   NewItem.Y2 := Y2;
   
+  if MaxLen < Length(InitialData)+1 then
+    MaxLen := Length(InitialData)+1;
+
   {$IFNDEF UNICODE}
-  CopyStrToBuf(InitialData, NewItem.Data.Data, SizeOf(NewItem.Data.Data));
+  if (MaxLen >= SizeOf(NewItem.Data.Data)) and ((ItemType=DI_COMBOBOX) or (ItemType=DI_EDIT)) then
+  begin
+    SetLength(Data, Length(Items));
+    Data[Result] := InitialData + #0;
+    SetLength(Data[Result], MaxLen);
+    NewItem.Data.Ptr.PtrFlags := 0;
+    NewItem.Data.Ptr.PtrLength := MaxLen;
+    NewItem.Data.Ptr.PtrData := @Data[Result][1];
+    NewItem.Flags := NewItem.Flags or DIF_VAREDIT;
+  end
+  else
+    CopyStrToBuf(InitialData, NewItem.Data.Data, SizeOf(NewItem.Data.Data));
   {$ELSE}
   SetLength(Data, Length(Items));
   Data[Result] := InitialData;
@@ -406,7 +423,10 @@ end;
 function TFarDialog.GetData(Index: Integer): FarString;
 begin
   {$IFNDEF UNICODE}
-  Result := PFarChar(@Items[Index].Data.Data[0])
+  if (Items[Index].Flags and DIF_VAREDIT)<>0 then
+    Result := PFarChar(@Data[Index][1])
+  else
+    Result := PFarChar(@Items[Index].Data.Data[0]);
   {$ELSE}
   Result := PFarChar(FARAPI.SendDlgMessage(Handle, DM_GETCONSTTEXTPTR, Index, 0));
   {$ENDIF}
