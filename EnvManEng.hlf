@@ -75,18 +75,21 @@ The default setting includes FARENV_EXPORT_HWND, a service variable used by the 
 @CommandLine
 $ #Command line#
 
-    You may enable, disable or toggle configuration entries using the FAR command line and the #envman:# prefix.
+    You may control EnvMan using the FAR command line and the #envman:# prefix.
 The syntax is as follows:
 
     If the command line is empty, EnvMan will display the ~entry list~@MainMenu@, but it will not display any warnings regarding external environment/configuration changes.
-Otherwise, it must begin with either #+#, #-# or #*#.
-This character represents the operation: enable, disable or toggle, respectively.
-Following is the entire name of the configuration, without any kind of quoting or escaping.
+Otherwise, it must begin with a character indicating the operation to perform: either #+#, #-#, #*# or #<#.
 
-    Example: #envman:+Delphi# will enable the #Delphi# configuration entry.
+    #+#, #-#, #*# will respectively enable, disable or toggle the configuration specified after the symbol. 
+For example, #envman:+Delphi# will enable the #Delphi# configuration entry.
+
+    #<# allows you to import the environment as a whole from a file (e.g.: #envman:<file.txt#).
+The file must contain one #NAME=Value# pair per line.
+You can dump the environment with the following command: #set > file.txt#.
 
     You may also use the same syntax using the experimental #callplugin# ~macro~@:KeyMacro@ function.
 EnvMan's SysID is #0x4D766E45#.
-The above example as a macro call will look like: #callplugin(0x4D766E45, "+Delphi")#
+The above example (to enable the #Delphi# configuration entry) will look like this as a macro call: #callplugin(0x4D766E45, "+Delphi")#
 
     ~Back to Contents~@Contents@
