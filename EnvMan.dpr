@@ -598,7 +598,8 @@ var
 const
   VK_CTRLUP   = VK_UP   or (PKF_CONTROL shl 16);
   VK_CTRLDOWN = VK_DOWN or (PKF_CONTROL shl 16);
-  BreakKeys: array[0..9] of Integer = (
+  VK_SHIFTF3  = VK_F3   or (PKF_SHIFT   shl 16);
+  BreakKeys: array[0..10] of Integer = (
     VK_ADD,
     VK_SUBTRACT,
     VK_SPACE,
@@ -608,11 +609,13 @@ const
     VK_F5,
     VK_CTRLUP,
     VK_CTRLDOWN,
+    VK_SHIFTF3,
     0
   );
 
 begin
   Env := ReadEnvironment;
+
   if not Quiet and not StringsEqual(LastUpdate, Env) then
   begin
     Entry := MakeDiffEntry(LastUpdate, Env, NewVars, ChangedVars, DeletedVars);
@@ -771,6 +774,8 @@ begin
             SaveEntry(Current+1, Entries[Current]);
             Inc(Current);
           end;
+      9: // VK_SHIFTF3
+        Message(FMSG_MB_OK, ConcatStrings([MakeStrings(['Environment']), Env]));
       else // VK_RETURN / hotkey
         if Current >= 0 then
         begin
