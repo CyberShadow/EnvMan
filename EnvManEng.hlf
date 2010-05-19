@@ -17,6 +17,7 @@ The user can "chain" entries by including the old value of the variable in the n
     To set up and use the plugin, open it from FAR's ~"Plugin commands"~@:PluginCommands@ menu.
 This will bring up the ~settings list~@MainMenu@.
 You may also ~configure~@Configuration@ a list of environment variables for EnvMan to ignore using the ~"Plugins configuration"~@:PluginsConfig@ menu.
+You may also ~import environment changes from a batch file~@ImportFromBatch@.
 
     EnvMan is also controllable using the ~command line~@CommandLine@, with the #envman:# prefix.
 You may use the same syntax with the #callplugin# macro function.
@@ -87,9 +88,35 @@ For example, #envman:+Delphi# will enable the #Delphi# configuration entry.
     #<# allows you to import the environment as a whole from a file (e.g.: #envman:<file.txt#).
 The file must contain one #NAME=Value# pair per line.
 You can dump the environment with the following command: #set > file.txt#.
+This feature can be used to easily ~import environment changes from a batch file~@ImportFromBatch@.
 
     You may also use the same syntax using the experimental #callplugin# ~macro~@:KeyMacro@ function.
 EnvMan's SysID is #0x4D766E45#.
 The above example (to enable the #Delphi# configuration entry) will look like this as a macro call: #callplugin(0x4D766E45, "+Delphi")#
+
+    ~Back to Contents~@Contents@
+
+@ImportFromBatch
+$ #Import from a batch file#
+
+    Some software packages (e.g. Microsoft Visual Studio) include batch files which set up the environment for use with the software's command-line tools.
+This section explains how you can import the changes set by these batch files into an EnvMan configuration.
+
+    First, you must create a new batch file which calls the software package's batch file, then saves the environment to a file.
+This is required because child processes spawned by FAR have their own environment block, and FAR / EnvMan can't "see" the environment changes performed by child processes.
+Thus, your batch file should look something like this:
+
+    #call "C:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\vcvarsall.bat" x86#
+    #set > env.txt#
+
+    When launched, your batch file should save the environment, containing changes from the respective .bat file, to the file #env.txt#. 
+    The next step is to import the environment into FAR. You can do this using the ~EnvMan command line~@CommandLine@ as follows:
+
+    #envman:<env.txt#
+
+    The environment should now be imported into FAR's process. You can verify this by running the #set# command and examining the output.
+    Now, if you try to open EnvMan using the ~Plugin commands~@:PluginCommands@ menu, EnvMan will detect an unmanaged change to the environment, and offer several options.
+Here, select #Import#. An EnvMan configuration dialog will appear. 
+Here, you can enter a meaningful name, review the settings, and finally save the new configuration.
 
     ~Back to Contents~@Contents@
