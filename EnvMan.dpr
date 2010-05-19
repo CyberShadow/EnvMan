@@ -24,6 +24,8 @@ type
     MName, 
     MOK, 
     MCancel, 
+    MTooManyLines1,
+    MTooManyLines2,
     
     MConfirmDeleteTitle, 
     MConfirmDeleteText,
@@ -505,6 +507,9 @@ var
   Dialog: TFarDialog;
 
 begin
+  if Length(Entry.Vars) > Rows then
+    Message(FMSG_WARNING or FMSG_MB_OK, [GetMsg(MWarning), GetMsg(MTooManyLines1), GetMsg(MTooManyLines2)]);
+
   Dialog := TFarDialog.Create;
   try
     Dialog.Add(DI_DOUBLEBOX, DIF_NONE, 3, 1, W-1-3, H-1-1, GetMsg(Caption));
