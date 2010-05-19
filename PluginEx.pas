@@ -24,10 +24,13 @@ function NullStringsToArray(P: PFarChar): TFarStringDynArray;
 function ArrayToNullStrings(A: TFarStringDynArray): FarString;
 procedure CopyStrToBuf(S: FarString; Buf: PFarChar; BufSize: Integer);
 function IntToStr(I: Integer): FarString; inline;
+function LoadString(FileName: FarString): FarString;
+function TryLoadString(FileName: FarString; var Data: FarString): Boolean;
 function StrReplace(Haystack, Source, Dest: FarString): FarString;
 function Trim(S: FarString): FarString;
 function Split(S: FarString; Delim: FarString): TFarStringDynArray;
 function SplitByAny(S, Delims: FarString): TFarStringDynArray;
+function SplitLines(S: FarString): TFarStringDynArray;
 function Join(S: TFarStringDynArray; Delim: FarString): FarString;
 function MakeStrings(const S: array of FarString): TFarStringDynArray;
 procedure AppendToStrings(var Strings: TFarStringDynArray; S: FarString);
@@ -147,6 +150,42 @@ begin
   Str(I, Result);
 end;
 
+function LoadString(FileName: FarString): FarString;
+var
+  F: File;
+  OldFileMode: Integer;
+begin
+  OldFileMode := FileMode; FileMode := {fmOpenRead}0;
+  Assign(F, FileName);
+  Reset(F, SizeOf(FarChar));
+  FileMode := OldFileMode;
+  SetLength(Result, FileSize(F));
+  if FileSize(F)>0 then
+    BlockRead(F, Result[1], FileSize(F));
+  CloseFile(F);
+end;
+
+function TryLoadString(FileName: FarString; var Data: FarString): Boolean;
+var
+  F: File;
+  OldFileMode: Integer;
+begin
+  OldFileMode := FileMode; FileMode := {fmOpenRead}0;
+  Assign(F, FileName);
+  {$I-}
+  Reset(F, SizeOf(FarChar));
+  {$I+}
+  FileMode := OldFileMode;
+  Result := False;
+  if IOResult<>0 then
+    Exit;
+  SetLength(Data, FileSize(F));
+  if FileSize(F)>0 then
+    BlockRead(F, Data[1], FileSize(F));
+  CloseFile(F);
+  Result := True;
+end;
+
 function StrReplace(Haystack, Source, Dest: FarString): FarString;
 var
   P: Integer;
@@ -213,6 +252,20 @@ begin
     P := PosAny(Delims, S);
     Result[High(Result)] := Copy(S, 1, P-1);
     Delete(S, 1, P);
+  end;
+end;
+
+function SplitLines(S: FarString): TFarStringDynArray;
+var
+  I: Integer;
+begin
+  Result := Split(S, #10);
+  for I:=0 to High(Result) do
+  begin
+    while Copy(Result[I], 1, 1)=#13 do
+      Delete(Result[I], 1, 1);
+    while Copy(Result[I], Length(Result[I]), 1)=#13 do
+      Delete(Result[I], Length(Result[I]), 1);
   end;
 end;
 
