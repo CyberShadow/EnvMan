@@ -50,7 +50,8 @@ type
 
     MError,
     MNoSuchEntry,
-    MBadCommandChar
+    MBadCommandChar,
+    MFileLoadError
   );
 
 function GetMsg(MsgId: TMessage): PFarChar;
@@ -802,6 +803,18 @@ begin
     end;
 end;
 
+procedure LoadEnv(FileName: FarString);
+var
+  S: FarString;
+begin
+  if not TryLoadString(FileName, S) then
+  begin
+    Message(FMSG_WARNING or FMSG_MB_OK, [GetMsg(MError), GetMsg(MFileLoadError), FileName]);
+    Exit
+  end;
+  SetEnvironment(SplitLines(S));
+end;
+
 procedure ProcessCommandLine(PCmdLine: PFarChar);
 var
   CmdLine, Name: FarString;
@@ -811,6 +824,9 @@ begin
   CmdLine := PCmdLine;
   if Length(CmdLine)=0 then
     ShowEntryMenu(True)
+  else
+  if CmdLine[1]='<' then
+    LoadEnv(Copy(CmdLine, 2, MaxInt))
   else
   begin
     Name := Copy(CmdLine, 2, MaxInt);
