@@ -379,7 +379,7 @@ end;
 
 function MakeDiffEntry(Env1, Env2: TFarStringDynArray; var NewVars, ChangedVars, DeletedVars: TFarStringDynArray): TEntry;
 var
-  I, J: Integer;
+  I, J, P: Integer;
   Found: Boolean;
   Name, NewValue, OldValue: FarString;
 
@@ -407,11 +407,12 @@ begin
         OldValue := GetValue(Env1[I]);
         if NewValue<>OldValue then
         begin
-          if Copy(NewValue, 1, Length(OldValue))=OldValue then // append
-            NewValue := '%'+Name+'%'+Copy(NewValue, Length(OldValue)+1, MaxInt)
-          else
-          if Copy(NewValue, Length(NewValue)-Length(OldValue)+1, Length(OldValue))=OldValue then // prepend
-            NewValue := Copy(NewValue, Length(NewValue)-Length(OldValue)+1, MaxInt)+'%'+Name+'%';
+          if Length(OldValue)>0 then
+          begin
+            P := Pos(OldValue, NewValue);
+            if P>0 then
+              NewValue := Copy(NewValue, 1, P-1)+'%'+Name+'%'+Copy(NewValue, P+Length(OldValue), MaxInt);
+          end;
           AppendSetting(Name, NewValue, ChangedVars);
         end;
         Break;
