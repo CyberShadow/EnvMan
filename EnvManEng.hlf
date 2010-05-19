@@ -5,19 +5,19 @@
 $ #EnvMan#
 
     This plugin's purpose is to allow quick and easy editing of environment variables.
-It is especially useful for people who use several toolchains with program name conflicts, or different versions of the same command-line software packages.
+    It is especially useful for people who use several toolchains with program name conflicts, or different versions of the same command-line software packages.
 
     The plugin allows users to pre-configure sets of environment variable settings, and quickly enable or disable these sets at any time.
-This applies not only to PATH, but any other environment variables as well.
+    This applies not only to PATH, but any other environment variables as well.
 
     The plugin saves the state of the environment when FAR Manager is started.
 Then, it applies each enabled entry, one on top of the other.
-The user can "chain" entries by including the old value of the variable in the new value, for example: #PATH=%PATH%;C:\ExamplePath#
+    The user can "chain" entries by including the old value of the variable in the new value, for example: #PATH=%PATH%;C:\ExamplePath#
 
     To set up and use the plugin, open it from FAR's ~"Plugin commands"~@:PluginCommands@ menu.
 This will bring up the ~settings list~@MainMenu@.
-You may also ~configure~@Configuration@ a list of environment variables for EnvMan to ignore using the ~"Plugins configuration"~@:PluginsConfig@ menu.
-You may also ~import environment changes from a batch file~@ImportFromBatch@.
+    You may also ~configure~@Configuration@ a list of environment variables for EnvMan to ignore using the ~"Plugins configuration"~@:PluginsConfig@ menu.
+    You may also ~import environment changes from a batch file~@ImportFromBatch@.
 
     EnvMan is also controllable using the ~command line~@CommandLine@, with the #envman:# prefix.
 You may use the same syntax with the #callplugin# macro function.
@@ -37,13 +37,13 @@ $ #EnvMan entry list#
  #Ctrl-Up/Down# - moves the current set up or down.
 
     The commands #Ins#, #F4# and #F5# will ~open a dialog~@Editor@ allowing to edit the entry's details.
-For #Ins# and #F5#, the new entry will be inserted if the changes in the dialog are accepted (the dialog is closed by selecting #OK#).
+    For #Ins# and #F5#, the new entry will be inserted if the changes in the dialog are accepted (the dialog is closed by selecting #OK#).
 
     Separators can be created by moving an entry past the upper or lower edge of the list.
-Similarly, separators can be removed by moving entries in the opposite direction - separators will disappear when there are no entries between them and the edge of the list.
+    Similarly, separators can be removed by moving entries in the opposite direction - separators will disappear when there are no entries between them and the edge of the list.
 
     Changes are applied to the environment as soon as the menu is closed.
-If you edited the settings in another FAR instance and would like to apply them to the current instance, simply open and close the sets list.
+    If you edited the settings in another FAR instance and would like to apply them to the current instance, simply open and close the sets list.
 
     ~Back to Contents~@Contents@
 
@@ -57,10 +57,10 @@ If you would like to force a specific letter as the menu item hotkey, prefix it 
 Use #&&# to insert a single ampersand.
 
     The multi-line edit box below defines the changes to the environment performed by the current entry.
-The format is similar to the format of the standard #set# command (bar the option switches).
-Each line must be in the format #NAME#=#Value#.
-The value may contain references to other environment variables, using the standard syntax #%VARNAME%#.
-Thus, it is possible to append to an existing environment variable using the syntax #NAME=%NAME%;TextToAppendHere#.
+    The format is similar to the format of the standard #set# command (bar the option switches).
+    Each line must be in the format #NAME#=#Value#.
+    The value may contain references to other environment variables, using the standard syntax #%VARNAME%#.
+    Thus, it is possible to append to an existing environment variable using the syntax #NAME=%NAME%;TextToAppendHere#.
 
     ~Back to EnvMan entry list~@MainMenu@
 
@@ -68,8 +68,8 @@ Thus, it is possible to append to an existing environment variable using the syn
 $ #EnvMan configuration#
 
     Currently EnvMan has only one configuration option: a list of environment variable names to ignore.
-You may delimit several variables using commas and semicolons.
-The default setting includes FARENV_EXPORT_HWND, a service variable used by the FarEnv plugin.
+    You may delimit several variables using commas and semicolons.
+    The default setting includes #FARENV_EXPORT_HWND#, a service variable used by the FarEnv plugin.
 
     ~Back to Contents~@Contents@
 
@@ -80,19 +80,19 @@ $ #Command line#
 The syntax is as follows:
 
     If the command line is empty, EnvMan will display the ~entry list~@MainMenu@, but it will not display any warnings regarding external environment/configuration changes.
-Otherwise, it must begin with a character indicating the operation to perform: either #+#, #-#, #*# or #<#.
+    Otherwise, it must begin with a character indicating the operation to perform: either #+#, #-#, #*# or #<#.
 
     #+#, #-#, #*# will respectively enable, disable or toggle the configuration specified after the symbol. 
-For example, #envman:+Delphi# will enable the #Delphi# configuration entry.
+    For example, #envman:+Delphi# will enable the #Delphi# configuration entry.
 
     #<# allows you to import the environment as a whole from a file (e.g.: #envman:<file.txt#).
-The file must contain one #NAME=Value# pair per line.
-You can dump the environment with the following command: #set > file.txt#.
-This feature can be used to easily ~import environment changes from a batch file~@ImportFromBatch@.
+    The file must contain one #NAME=Value# pair per line.
+    You can dump the environment with the following command: #set > file.txt#.
+    This feature can be used to easily ~import environment changes from a batch file~@ImportFromBatch@.
 
     You may also use the same syntax using the experimental #callplugin# ~macro~@:KeyMacro@ function.
-EnvMan's SysID is #0x4D766E45#.
-The above example (to enable the #Delphi# configuration entry) will look like this as a macro call: #callplugin(0x4D766E45, "+Delphi")#
+    EnvMan's SysID is #0x4D766E45#.
+    The above example (to enable the #Delphi# configuration entry) will look like this as a macro call: #callplugin(0x4D766E45, "+Delphi")#
 
     ~Back to Contents~@Contents@
 
@@ -100,11 +100,11 @@ The above example (to enable the #Delphi# configuration entry) will look like th
 $ #Import from a batch file#
 
     Some software packages (e.g. Microsoft Visual Studio) include batch files which set up the environment for use with the software's command-line tools.
-This section explains how you can import the changes set by these batch files into an EnvMan configuration.
+    This section explains how you can import the changes set by these batch files into an EnvMan configuration.
 
     First, you must create a new batch file which calls the software package's batch file, then saves the environment to a file.
-This is required because child processes spawned by FAR have their own environment block, and FAR / EnvMan can't "see" the environment changes performed by child processes.
-Thus, your batch file should look something like this:
+    This is required because child processes spawned by FAR have their own environment block, and FAR / EnvMan can't "see" the environment changes performed by child processes.
+    Thus, your batch file should look something like this:
 
     #call "C:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\vcvarsall.bat" x86#
     #set > env.txt#
@@ -114,9 +114,11 @@ Thus, your batch file should look something like this:
 
     #envman:<env.txt#
 
-    The environment should now be imported into FAR's process. You can verify this by running the #set# command and examining the output.
+    The environment should now be imported into FAR's process. 
+You can verify this by running the #set# command and examining the output.
     Now, if you try to open EnvMan using the ~Plugin commands~@:PluginCommands@ menu, EnvMan will detect an unmanaged change to the environment, and offer several options.
-Here, select #Import#. An EnvMan configuration dialog will appear. 
+Here, select #Import#.
+    An EnvMan configuration dialog will appear.
 Here, you can enter a meaningful name, review the settings, and finally save the new configuration.
 
     ~Back to Contents~@Contents@
