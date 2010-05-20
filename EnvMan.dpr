@@ -799,7 +799,8 @@ begin
         end;
       11: // VK_SHIFTF4
       begin
-        Update;
+        if not EntriesEqual(InitialEntries, Entries) then
+          Update;
         if EditEnvironment then
           Exit;
       end
