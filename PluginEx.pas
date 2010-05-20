@@ -26,6 +26,7 @@ procedure CopyStrToBuf(S: FarString; Buf: PFarChar; BufSize: Integer);
 function IntToStr(I: Integer): FarString; inline;
 function LoadString(FileName: FarString): FarString;
 function TryLoadString(FileName: FarString; var Data: FarString): Boolean;
+procedure SaveString(FileName, Data: FarString);
 function StrReplace(Haystack, Source, Dest: FarString): FarString;
 function Trim(S: FarString): FarString;
 function Split(S: FarString; Delim: FarString): TFarStringDynArray;
@@ -35,6 +36,7 @@ function Join(S: TFarStringDynArray; Delim: FarString): FarString;
 function MakeStrings(const S: array of FarString): TFarStringDynArray;
 procedure AppendToStrings(var Strings: TFarStringDynArray; S: FarString);
 function ConcatStrings(const S: array of TFarStringDynArray): TFarStringDynArray;
+function GetTempFullFileName(PrefixString: FarString='Far'): FarString;
 
 // ANSI/UNICODE wrappers for WinAPI functions
 function RegCreateKeyExF(hKey: HKEY; lpSubKey: PFarChar; Reserved: DWORD; lpClass: PFarChar; dwOptions: DWORD; samDesired: REGSAM; lpSecurityAttributes: PSecurityAttributes; var phkResult: HKEY; lpdwDisposition: PDWORD): Longint; inline;
@@ -46,6 +48,9 @@ function SetEnvironmentVariableF(lpName, lpValue: PFarChar): BOOL; inline;
 function GetEnvironmentStringsF: PFarChar; inline;
 function FreeEnvironmentStringsF(EnvBlock: PFarChar): BOOL; inline;
 function ExpandEnvironmentStringsF(lpSrc: PFarChar; lpDst: PFarChar; nSize: DWORD): DWORD; inline;
+function GetTempPathF(nBufferLength: DWORD; lpBuffer: PFarChar): DWORD;
+function GetTempFileNameF(lpPathName, lpPrefixString: PFarChar; uUnique: UINT; lpTempFileName: PFarChar): UINT;
+function DeleteFileF(lpFileName: PFarChar): BOOL;
 
 type
   TFarDialog = class
@@ -188,6 +193,16 @@ begin
   Result := True;
 end;
 
+procedure SaveString(FileName, Data: FarString);
+var
+  F: File;
+begin
+  Assign(F, FileName);
+  ReWrite(F, SizeOf(FarChar));
+  BlockWrite(F, Data[1], Length(Data));
+  CloseFile(F);
+end;
+
 function StrReplace(Haystack, Source, Dest: FarString): FarString;
 var
   P: Integer;
@@ -313,6 +328,15 @@ begin
   end;
 end;
 
+function GetTempFullFileName(PrefixString: FarString='Far'): FarString;
+var
+  Path: array[0..MAX_PATH] of FarChar;
+begin
+  GetTempPathF(MAX_PATH, @Path[0]);
+  GetTempFileNameF(@Path[0], PFarChar(PrefixString), 0, @Path[0]);
+  Result := PFarChar(@Path[0]);
+end;
+
 // ************************************************************************************************************************************************************
 
 function RegCreateKeyExF(hKey: HKEY; lpSubKey: PFarChar; Reserved: DWORD; lpClass: PFarChar; dwOptions: DWORD; samDesired: REGSAM; lpSecurityAttributes: PSecurityAttributes; var phkResult: HKEY; lpdwDisposition: PDWORD): Longint; inline;
@@ -358,6 +382,21 @@ end;
 function ExpandEnvironmentStringsF(lpSrc: PFarChar; lpDst: PFarChar; nSize: DWORD): DWORD; inline;
 begin
   Result := {$IFNDEF UNICODE}ExpandEnvironmentStringsA{$ELSE}ExpandEnvironmentStringsW{$ENDIF}(lpSrc, lpDst, nSize);
+end;
+
+function GetTempPathF(nBufferLength: DWORD; lpBuffer: PFarChar): DWORD;
+begin
+  Result := {$IFNDEF UNICODE}GetTempPathA{$ELSE}GetTempPathW{$ENDIF}(nBufferLength, lpBuffer);
+end;
+
+function GetTempFileNameF(lpPathName, lpPrefixString: PFarChar; uUnique: UINT; lpTempFileName: PFarChar): UINT;
+begin
+  Result := {$IFNDEF UNICODE}GetTempFileNameA{$ELSE}GetTempFileNameW{$ENDIF}(lpPathName, lpPrefixString, uUnique, lpTempFileName);
+end;
+
+function DeleteFileF(lpFileName: PFarChar): BOOL;
+begin
+  Result := {$IFNDEF UNICODE}DeleteFileA{$ELSE}DeleteFileW{$ENDIF}(lpFileName);
 end;
 
 // ************************************************************************************************************************************************************
