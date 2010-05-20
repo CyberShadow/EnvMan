@@ -446,6 +446,8 @@ begin
   RegCloseKey(Key);
 end;
 
+function EditEntryAlt(var Entry: TEntry): Boolean; forward;
+
 function EditEntry(var Entry: TEntry; Caption: TMessage): Boolean;
 const
   W = 75;
@@ -460,7 +462,13 @@ var
 
 begin
   if Length(Entry.Vars) > Rows then
-    Message(FMSG_WARNING or FMSG_MB_OK, [GetMsg(MWarning), GetMsg(MTooManyLines1), GetMsg(MTooManyLines2)]);
+  begin
+    if Message(FMSG_WARNING or FMSG_MB_YESNO, [GetMsg(MWarning), GetMsg(MTooManyLines1), GetMsg(MTooManyLines2)])=0 then
+      Result := EditEntryAlt(Entry)
+    else
+      Result := False;
+    Exit;
+  end;
 
   Dialog := TFarDialog.Create;
   try
