@@ -197,6 +197,21 @@ begin
   FreeEnvironmentStringsF(Env);
 end;
 
+function ReadRawEnvironment: FarString;
+var
+  Env: PFarChar;
+  I: Integer;
+begin
+  Env := GetEnvironmentStringsF;
+  I := 0;
+  while (Env[I]<>#0) or (Env[I+1]<>#0) do
+    Inc(I);
+  Inc(I);
+  SetLength(Result, I);
+  Move(Env^, Result[1], I*SizeOf(FarChar));
+  FreeEnvironmentStringsF(Env);
+end;
+
 procedure ClearEnvironment;
 var
   Env: TFarStringDynArray;
@@ -857,6 +872,12 @@ begin
     Message(FMSG_WARNING or FMSG_MB_OK, [GetMsg(MError), GetMsg(MFileCreateError), FileName]);
 end;
 
+procedure SaveRawEnv(FileName: FarString);
+begin
+  if not TrySaveString(FileName, ReadRawEnvironment) then
+    Message(FMSG_WARNING or FMSG_MB_OK, [GetMsg(MError), GetMsg(MFileCreateError), FileName]);
+end;
+
 procedure ProcessCommandLine(PCmdLine: PFarChar);
 var
   CmdLine, Name: FarString;
@@ -872,6 +893,9 @@ begin
   else
   if CmdLine[1]='>' then
     SaveEnv(Copy(CmdLine, 2, MaxInt))
+  else
+  if CmdLine[1]='}' then
+    SaveRawEnv(Copy(CmdLine, 2, MaxInt))
   else
   if CmdLine[1]='e' then
     EditEnvironment

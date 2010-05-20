@@ -82,19 +82,20 @@ $ #Command line#
 The syntax is as follows:
 
     If the command line is empty, EnvMan will display the ~entry list~@MainMenu@, but it will not display any warnings regarding external environment/configuration changes.
-    Otherwise, it must begin with a character indicating the operation to perform: either #+#, #-#, #*#, #<#, #># or #e#.
+    Otherwise, it must begin with a character indicating the operation to perform: either #+#, #-#, #*#, #>#, #}#, #<# or #e#.
 
     #+#, #-#, #*# will respectively enable, disable or toggle the configuration specified after the symbol. 
     For example, #envman:+Delphi# will enable the #Delphi# configuration entry.
 
-    #<# allows you to import the environment as a whole from a file (e.g.: #envman:<file.txt#).
-    The file must contain one #NAME=Value# pair per line.
-    You can dump the environment using the command #set > file.txt#, or you can use #envman:>file.txt# (see below).
-    This feature can be used to easily ~import environment changes from a batch file~@ImportFromBatch@.
-
-    Similarly, #># allows exporting the environment to a file. 
+    #># allows exporting FAR's environment to a file. 
     It is similar to #set > file.txt#, however there may be some differences due to cmd-specific variables like PROMPT, FAR plugins, or 64-bit architecture specifics if you use a 64-bit system.
+    EnvMan will also not include ignored variables as set in its configuration.
     Also, if you use the Unicode version of the plugin, the output will be saved in Unicode, unlike when using #set#.
+    You can use #}# to dump the raw, null-separated environment block.
+
+    Similarly, #<# allows you to import the environment as a whole from a file (e.g.: #envman:<file.txt#).
+    The file must contain one #NAME=Value# pair per line.
+    This feature can be used to easily ~import environment changes from a batch file~@ImportFromBatch@.
 
     #e# will open a FAR editor with the current environment (same as pressing #Shift-F4# in the ~entry list~@MainMenu@).
 
