@@ -36,6 +36,7 @@ $ #EnvMan entry list#
  #Alt-F4#       - edits the selected entry in FAR's text editor.
  #F5#           - copies the selected entry.
  #Ctrl-Up/Down# - moves the current set up or down.
+ #Shift-F4#     - edits FAR's environment block in FAR's text editor.
 
     The commands #Ins#, #F4# and #F5# will ~open a dialog~@Editor@ allowing to edit the entry's details.
     For #Ins# and #F5#, the new entry will be inserted if the changes in the dialog are accepted (the dialog is closed by selecting #OK#).
@@ -81,7 +82,7 @@ $ #Command line#
 The syntax is as follows:
 
     If the command line is empty, EnvMan will display the ~entry list~@MainMenu@, but it will not display any warnings regarding external environment/configuration changes.
-    Otherwise, it must begin with a character indicating the operation to perform: either #+#, #-#, #*# or #<#.
+    Otherwise, it must begin with a character indicating the operation to perform: either #+#, #-#, #*#, #<# or #e#.
 
     #+#, #-#, #*# will respectively enable, disable or toggle the configuration specified after the symbol. 
     For example, #envman:+Delphi# will enable the #Delphi# configuration entry.
@@ -90,6 +91,8 @@ The syntax is as follows:
     The file must contain one #NAME=Value# pair per line.
     You can dump the environment with the following command: #set > file.txt#.
     This feature can be used to easily ~import environment changes from a batch file~@ImportFromBatch@.
+
+    #e# will open a FAR editor with the current environment (same as pressing #Shift-F4# in the ~entry list~@MainMenu@).
 
     You may also use the same syntax using the experimental #callplugin# ~macro~@:KeyMacro@ function.
     EnvMan's SysID is #0x4D766E45#.

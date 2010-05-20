@@ -553,6 +553,16 @@ begin
     Entry := LinesToEntry(SplitLines(Data));
 end;
 
+function EditEnvironment: Boolean;
+var
+  Data: FarString;
+begin
+  Data := Join(ReadEnvironment, #13#10);
+  Result := EditString(Data, 'Environment');
+  if Result then
+    SetEnvironment(SplitLines(Data));
+end;
+
 procedure ShowEntryMenu(Quiet: Boolean);
 var
   Entries: TEntryDynArray;
@@ -600,7 +610,8 @@ const
   VK_CTRLDOWN = VK_DOWN or (PKF_CONTROL shl 16);
   VK_SHIFTF3  = VK_F3   or (PKF_SHIFT   shl 16);
   VK_ALTF4    = VK_F4   or (PKF_ALT     shl 16);
-  BreakKeys: array[0..11] of Integer = (
+  VK_SHIFTF4  = VK_F4   or (PKF_SHIFT   shl 16);
+  BreakKeys: array[0..12] of Integer = (
     VK_ADD,
     VK_SUBTRACT,
     VK_SPACE,
@@ -612,6 +623,7 @@ const
     VK_CTRLDOWN,
     VK_SHIFTF3,
     VK_ALTF4,
+    VK_SHIFTF4,
     0
   );
 
@@ -687,7 +699,7 @@ begin
       Items[I].Checked := Integer(Entries[I].Enabled);
       Items[I].Separator := Integer({False}Entries[I].Name='-');
     end;
-    Current := FARAPI.Menu(FARAPI.ModuleNumber, -1, -1, 0, FMENU_AUTOHIGHLIGHT or FMENU_WRAPMODE, 'Environment Manager', '+,-,Space,Ins,Del,F4,Alt-F4,F5,Ctrl-Up,Ctrl-Down', 'MainMenu', @BreakKeys, @BreakCode, @Items[0], Length(Items));
+    Current := FARAPI.Menu(FARAPI.ModuleNumber, -1, -1, 0, FMENU_AUTOHIGHLIGHT or FMENU_WRAPMODE, 'Environment Manager', '+,-,Space,Ins,Del,F4,Alt-F4,F5,Ctrl-Up,Ctrl-Down,Shift+F4', 'MainMenu', @BreakKeys, @BreakCode, @Items[0], Length(Items));
     if (Current=-1) and (BreakCode=-1) then
       Break;
     case BreakCode of
@@ -785,6 +797,12 @@ begin
           if EditEntryAlt(Entry) then
             SaveEntry(Current, Entry);
         end;
+      11: // VK_SHIFTF4
+      begin
+        Update;
+        if EditEnvironment then
+          Exit;
+      end
       else // VK_RETURN / hotkey
         if Current >= 0 then
         begin
@@ -841,6 +859,9 @@ begin
   else
   if CmdLine[1]='<' then
     LoadEnv(Copy(CmdLine, 2, MaxInt))
+  else
+  if CmdLine[1]='e' then
+    EditEnvironment
   else
   begin
     Name := Copy(CmdLine, 2, MaxInt);
