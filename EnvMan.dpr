@@ -13,54 +13,6 @@ library EnvMan;
 uses
   Windows, Types, {$IFDEF UNICODE}PluginW{$ELSE}Plugin{$ENDIF}, PluginEx;
 
-type
-  TMessage = (
-    MNewCaption, 
-    MEditCaption, 
-    MCopyCaption, 
-    MImportCaption, 
-    
-    MEnabled, 
-    MName, 
-    MOK, 
-    MCancel, 
-    MTooManyLines1,
-    MTooManyLines2,
-    
-    MConfirmDeleteTitle, 
-    MConfirmDeleteText,
-    
-    MWarning,
-    MEnvEdited1,
-    MEnvEdited2,
-    MEnvEdited3,
-    MNewVars,
-    MChangedVars,
-    MDeletedVars,
-    MContinue,
-    MImport,
-    MIgnore,
-
-    MNoChange1,
-    MNoChange2,
-    MNoChange3,
-    MOverwrite,
-    MKeep,
-
-    MConfiguration,
-    MIgnoredVariables,
-
-    MError,
-    MNoSuchEntry,
-    MBadCommandChar,
-    MFileLoadError
-  );
-
-function GetMsg(MsgId: TMessage): PFarChar;
-begin
-  Result := FARAPI.GetMsg(FARAPI.ModuleNumber, Integer(MsgId));
-end;
-
 // ****************************************************************************
 
 var

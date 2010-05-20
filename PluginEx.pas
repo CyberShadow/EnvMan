@@ -68,6 +68,13 @@ type
   {$ENDIF}
   end;
 
+type
+  TMessage = (
+{$I lang.inc}
+    M__Last // allow ending the list with a comma
+  );
+
+function GetMsg(MsgId: TMessage): PFarChar;
 function Message(Flags: DWORD; const Lines: array of FarString; ButtonCount: Integer = 0; HelpTopic: PFarChar = nil): Integer;
 
 {$IFNDEF UNICODE}
@@ -472,6 +479,11 @@ begin
 end;
 
 // ************************************************************************************************************************************************************
+
+function GetMsg(MsgId: TMessage): PFarChar;
+begin
+  Result := FARAPI.GetMsg(FARAPI.ModuleNumber, Integer(MsgId));
+end;
 
 function Message(Flags: DWORD; const Lines: array of FarString; ButtonCount: Integer = 0; HelpTopic: PFarChar = nil): Integer;
 begin
