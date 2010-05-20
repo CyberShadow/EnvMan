@@ -146,6 +146,15 @@ begin
   Result := Copy(S, Pos('=', S)+1, MaxInt);
 end;
 
+function ReadFullEnvironment: TFarStringDynArray;
+var
+  Env: PFarChar;
+begin
+  Env := GetEnvironmentStringsF;
+  Result := NullStringsToArray(Env);
+  FreeEnvironmentStringsF(Env);
+end;
+
 procedure ApplyNameValuePair(S: FarString);
 var
   P: Integer;
