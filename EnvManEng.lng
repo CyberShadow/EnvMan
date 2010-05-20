@@ -38,4 +38,6 @@
 "Error"
 "No such EnvMan environment entry:"
 "EnvMan command line must begin with +, - or *"
-"Can't load file:"
+
+"Unable to load file:"
+"Unable to create file:"

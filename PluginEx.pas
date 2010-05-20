@@ -27,6 +27,7 @@ function IntToStr(I: Integer): FarString; inline;
 function LoadString(FileName: FarString): FarString;
 function TryLoadString(FileName: FarString; var Data: FarString): Boolean;
 procedure SaveString(FileName, Data: FarString);
+function TrySaveString(FileName, Data: FarString): Boolean;
 function StrReplace(Haystack, Source, Dest: FarString): FarString;
 function Trim(S: FarString): FarString;
 function Split(S: FarString; Delim: FarString): TFarStringDynArray;
@@ -76,6 +77,7 @@ type
 
 function GetMsg(MsgId: TMessage): PFarChar;
 function Message(Flags: DWORD; const Lines: array of FarString; ButtonCount: Integer = 0; HelpTopic: PFarChar = nil): Integer;
+function EditString(var Data: FarString; Title: FarString): Boolean;
 
 {$IFNDEF UNICODE}
 const OPEN_FROMMACRO = $10000; // not in Plugin.pas
@@ -208,6 +210,22 @@ begin
   ReWrite(F, SizeOf(FarChar));
   BlockWrite(F, Data[1], Length(Data));
   CloseFile(F);
+end;
+
+function TrySaveString(FileName, Data: FarString): Boolean;
+var
+  F: File;
+begin
+  Assign(F, FileName);
+  {$I-}
+  ReWrite(F, SizeOf(FarChar));
+  {$I+}
+  Result := False;
+  if IOResult<>0 then
+    Exit;
+  BlockWrite(F, Data[1], Length(Data));
+  CloseFile(F);
+  Result := True;
 end;
 
 function StrReplace(Haystack, Source, Dest: FarString): FarString;
@@ -488,6 +506,26 @@ end;
 function Message(Flags: DWORD; const Lines: array of FarString; ButtonCount: Integer = 0; HelpTopic: PFarChar = nil): Integer;
 begin
   Result := FARAPI.Message(FARAPI.ModuleNumber, Flags, HelpTopic, PPCharArray(@Lines[0]), Length(Lines), ButtonCount);
+end;
+
+// Open an editor on a temporary file to edit given string
+function EditString(var Data: FarString; Title: FarString): Boolean;
+var
+  FileName: FarString;
+begin
+  Result := False;
+  FileName := GetTempFullFileName('Env');
+  if not TrySaveString(FileName, Data) then
+  begin
+    Message(FMSG_WARNING or FMSG_MB_OK, [GetMsg(MError), GetMsg(MFileCreateError), FileName]);
+    Exit;
+  end;
+  if FARAPI.Editor(PFarChar(FileName), PFarChar(Title), -1, -1, -1, -1, EF_DISABLEHISTORY, 0, 1{$IFDEF UNICODE}, CP_UNICODE{$ENDIF})=EEC_MODIFIED then
+  begin
+    Result := True;
+    Data := LoadString(FileName);
+  end;
+  DeleteFileF(PFarChar(FileName));
 end;
 
 end.

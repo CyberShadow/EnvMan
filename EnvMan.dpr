@@ -537,18 +537,12 @@ end;
 
 function EditEntryAlt(var Entry: TEntry): Boolean;
 var
-  FileName: FarString;
+  Data: FarString;
 begin
-  FileName := GetTempFullFileName('Env');
-  SaveString(FileName, Join(EntryToLines(Entry), #13#10));
-  if FARAPI.Editor(PFarChar(FileName), PFarChar(Entry.Name + ' - EnvMan'), -1, -1, -1, -1, EF_DISABLEHISTORY, 0, 1)=EEC_MODIFIED then
-  begin
-    Result := True;
-    Entry := LinesToEntry(SplitLines(LoadString(FileName)));
-  end
-  else
-    Result := False;
-  DeleteFileF(PFarChar(FileName));
+  Data := Join(EntryToLines(Entry), #13#10);
+  Result := EditString(Data, Entry.Name + ' - EnvMan');
+  if Result then
+    Entry := LinesToEntry(SplitLines(Data));
 end;
 
 procedure ShowEntryMenu(Quiet: Boolean);
