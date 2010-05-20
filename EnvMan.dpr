@@ -551,11 +551,16 @@ begin
     Entry := LinesToEntry(SplitLines(Data));
 end;
 
+function EnvToText(Env: TFarStringDynArray): FarString;
+begin
+  Result := Join(Env, #13#10) + #13#10;
+end;
+
 function EditEnvironment: Boolean;
 var
   Data: FarString;
 begin
-  Data := Join(ReadEnvironment, #13#10);
+  Data := EnvToText(ReadEnvironment);
   Result := EditString(Data, 'Environment');
   if Result then
     SetEnvironment(SplitLines(Data));
@@ -846,6 +851,12 @@ begin
   SetEnvironment(SplitLines(S));
 end;
 
+procedure SaveEnv(FileName: FarString);
+begin
+  if not TrySaveText(FileName, EnvToText(ReadEnvironment)) then
+    Message(FMSG_WARNING or FMSG_MB_OK, [GetMsg(MError), GetMsg(MFileCreateError), FileName]);
+end;
+
 procedure ProcessCommandLine(PCmdLine: PFarChar);
 var
   CmdLine, Name: FarString;
@@ -858,6 +869,9 @@ begin
   else
   if CmdLine[1]='<' then
     LoadEnv(Copy(CmdLine, 2, MaxInt))
+  else
+  if CmdLine[1]='>' then
+    SaveEnv(Copy(CmdLine, 2, MaxInt))
   else
   if CmdLine[1]='e' then
     EditEnvironment
