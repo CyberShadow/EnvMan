@@ -152,8 +152,6 @@ var
 begin
   if S='' then
     Exit;
-  if (S[1]=';') or (S[1]='#') then
-    Exit;
   P := Pos('=', S);
   if P=0 then Exit;
   S[P] := #0;
