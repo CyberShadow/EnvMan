@@ -24,10 +24,10 @@ function NullStringsToArray(P: PFarChar): TFarStringDynArray;
 function ArrayToNullStrings(A: TFarStringDynArray): FarString;
 procedure CopyStrToBuf(S: FarString; Buf: PFarChar; BufSize: Integer);
 function IntToStr(I: Integer): FarString; inline;
-function LoadString(FileName: FarString): FarString;
 function TryLoadString(FileName: FarString; var Data: FarString): Boolean;
-procedure SaveString(FileName, Data: FarString);
+function TryLoadText(FileName: FarString; var Data: FarString): Boolean;
 function TrySaveString(FileName, Data: FarString): Boolean;
+function TrySaveText(FileName, Data: FarString): Boolean;
 function StrReplace(Haystack, Source, Dest: FarString): FarString;
 function Trim(S: FarString): FarString;
 function Split(S: FarString; Delim: FarString): TFarStringDynArray;
@@ -166,21 +166,6 @@ begin
   Str(I, Result);
 end;
 
-function LoadString(FileName: FarString): FarString;
-var
-  F: File;
-  OldFileMode: Integer;
-begin
-  OldFileMode := FileMode; FileMode := {fmOpenRead}0;
-  Assign(F, FileName);
-  Reset(F, SizeOf(FarChar));
-  FileMode := OldFileMode;
-  SetLength(Result, FileSize(F));
-  if FileSize(F)>0 then
-    BlockRead(F, Result[1], FileSize(F));
-  CloseFile(F);
-end;
-
 function TryLoadString(FileName: FarString; var Data: FarString): Boolean;
 var
   F: File;
@@ -202,14 +187,35 @@ begin
   Result := True;
 end;
 
-procedure SaveString(FileName, Data: FarString);
+function TryLoadText(FileName: FarString; var Data: FarString): Boolean;
 var
   F: File;
+  OldFileMode: Integer;
+  RawData: AnsiString;
 begin
+  OldFileMode := FileMode; FileMode := {fmOpenRead}0;
   Assign(F, FileName);
-  ReWrite(F, SizeOf(FarChar));
-  BlockWrite(F, Data[1], Length(Data));
+  {$I-}
+  Reset(F, 1);
+  {$I+}
+  FileMode := OldFileMode;
+  Result := False;
+  if IOResult<>0 then
+    Exit;
+  SetLength(RawData, FileSize(F));
+  if FileSize(F)>0 then
+    BlockRead(F, RawData[1], FileSize(F));
   CloseFile(F);
+  {$IFDEF UNICODE}
+  if (Copy(RawData, 1, 2)=#$FF#$FE) and (Length(RawData) mod 2 = 0) then
+  begin
+    SetLength(Data, Length(RawData) div 2 - 1);
+    Move(RawData[3], Data[1], Length(Data)-2);
+  end
+  else
+  {$ENDIF}
+    Data := RawData;
+  Result := True;
 end;
 
 function TrySaveString(FileName, Data: FarString): Boolean;
@@ -226,6 +232,14 @@ begin
   BlockWrite(F, Data[1], Length(Data));
   CloseFile(F);
   Result := True;
+end;
+
+function TrySaveText(FileName, Data: FarString): Boolean;
+begin
+  {$IFDEF UNICODE}
+  Data := #$FEFF + Data; // add BOM
+  {$ENDIF}
+  Result := TrySaveString(Filename, Data);
 end;
 
 function StrReplace(Haystack, Source, Dest: FarString): FarString;
@@ -515,7 +529,7 @@ var
 begin
   Result := False;
   FileName := GetTempFullFileName('Env');
-  if not TrySaveString(FileName, Data) then
+  if not TrySaveText(FileName, Data) then
   begin
     Message(FMSG_WARNING or FMSG_MB_OK, [GetMsg(MError), GetMsg(MFileCreateError), FileName]);
     Exit;
@@ -523,7 +537,11 @@ begin
   if FARAPI.Editor(PFarChar(FileName), PFarChar(Title), -1, -1, -1, -1, EF_DISABLEHISTORY, 0, 1{$IFDEF UNICODE}, CP_UNICODE{$ENDIF})=EEC_MODIFIED then
   begin
     Result := True;
-    Data := LoadString(FileName);
+    if not TryLoadText(FileName, Data) then
+    begin
+      Message(FMSG_WARNING or FMSG_MB_OK, [GetMsg(MError), GetMsg(MFileLoadError), FileName]);
+      Exit;
+    end;
   end;
   DeleteFileF(PFarChar(FileName));
 end;

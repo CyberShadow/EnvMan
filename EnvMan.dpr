@@ -840,7 +840,7 @@ procedure LoadEnv(FileName: FarString);
 var
   S: FarString;
 begin
-  if not TryLoadString(FileName, S) then
+  if not TryLoadText(FileName, S) then
   begin
     Message(FMSG_WARNING or FMSG_MB_OK, [GetMsg(MError), GetMsg(MFileLoadError), FileName]);
     Exit
