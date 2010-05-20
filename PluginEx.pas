@@ -442,10 +442,10 @@ begin
   NewItem.X2 := X2;
   NewItem.Y2 := Y2;
   
+  {$IFNDEF UNICODE}
   if MaxLen < Length(InitialData)+1 then
     MaxLen := Length(InitialData)+1;
 
-  {$IFNDEF UNICODE}
   if (MaxLen >= SizeOf(NewItem.Data.Data)) and ((ItemType=DI_COMBOBOX) or (ItemType=DI_EDIT)) then
   begin
     SetLength(Data, Length(Items));
