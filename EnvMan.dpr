@@ -553,6 +553,52 @@ begin
   end;
 end;
 
+function EntryToLines(const Entry: TEntry): TFarStringDynArray;
+begin
+  Result := ConcatStrings([
+    MakeStrings([
+      '=Name=' + Entry.Name,
+      '=Enabled=' + IntToStr(Integer(Entry.Enabled)),
+      ''
+    ]), 
+    Entry.Vars, 
+    MakeStrings([''])
+  ]);
+end;
+
+function LinesToEntry(Lines: TFarStringDynArray): TEntry;
+var
+  I: Integer;
+begin
+  Result.Name := '';
+  Result.Enabled := False;
+  for I := 0 to High(Lines) do
+    if Copy(Lines[I], 1, 6) = '=Name=' then
+      Result.Name := Copy(Lines[I], 7, MaxInt)
+    else
+    if Copy(Lines[I], 1, 9) = '=Enabled=' then
+      Result.Enabled := Copy(Lines[I], 10, MaxInt) = '1'
+    else
+    if Pos('=', Lines[I]) > 1 then
+      AppendToStrings(Result.Vars, Lines[I]);
+end;
+
+function EditEntryAlt(var Entry: TEntry): Boolean;
+var
+  FileName: FarString;
+begin
+  FileName := GetTempFullFileName('Env');
+  SaveString(FileName, Join(EntryToLines(Entry), #13#10));
+  if FARAPI.Editor(PFarChar(FileName), PFarChar(Entry.Name + ' - EnvMan'), -1, -1, -1, -1, EF_DISABLEHISTORY, 0, 1)=EEC_MODIFIED then
+  begin
+    Result := True;
+    Entry := LinesToEntry(SplitLines(LoadString(FileName)));
+  end
+  else
+    Result := False;
+  DeleteFileF(PFarChar(FileName));
+end;
+
 procedure ShowEntryMenu(Quiet: Boolean);
 var
   Entries: TEntryDynArray;
@@ -599,7 +645,8 @@ const
   VK_CTRLUP   = VK_UP   or (PKF_CONTROL shl 16);
   VK_CTRLDOWN = VK_DOWN or (PKF_CONTROL shl 16);
   VK_SHIFTF3  = VK_F3   or (PKF_SHIFT   shl 16);
-  BreakKeys: array[0..10] of Integer = (
+  VK_ALTF4    = VK_F4   or (PKF_ALT     shl 16);
+  BreakKeys: array[0..11] of Integer = (
     VK_ADD,
     VK_SUBTRACT,
     VK_SPACE,
@@ -610,6 +657,7 @@ const
     VK_CTRLUP,
     VK_CTRLDOWN,
     VK_SHIFTF3,
+    VK_ALTF4,
     0
   );
 
@@ -685,7 +733,7 @@ begin
       Items[I].Checked := Integer(Entries[I].Enabled);
       Items[I].Separator := Integer({False}Entries[I].Name='-');
     end;
-    Current := FARAPI.Menu(FARAPI.ModuleNumber, -1, -1, 0, FMENU_AUTOHIGHLIGHT or FMENU_WRAPMODE, 'Environment Manager', '+,-,Space,Ins,Del,F4,F5,Ctrl-Up,Ctrl-Down', 'MainMenu', @BreakKeys, @BreakCode, @Items[0], Length(Items));
+    Current := FARAPI.Menu(FARAPI.ModuleNumber, -1, -1, 0, FMENU_AUTOHIGHLIGHT or FMENU_WRAPMODE, 'Environment Manager', '+,-,Space,Ins,Del,F4,Alt-F4,F5,Ctrl-Up,Ctrl-Down', 'MainMenu', @BreakKeys, @BreakCode, @Items[0], Length(Items));
     if (Current=-1) and (BreakCode=-1) then
       Break;
     case BreakCode of
@@ -776,6 +824,13 @@ begin
           end;
       9: // VK_SHIFTF3
         Message(FMSG_MB_OK, ConcatStrings([MakeStrings(['Environment']), Env]));
+      10: // VK_ALTF4
+        if Current >= 0 then
+        begin
+          Entry := Entries[Current];
+          if EditEntryAlt(Entry) then
+            SaveEntry(Current, Entry);
+        end;
       else // VK_RETURN / hotkey
         if Current >= 0 then
         begin

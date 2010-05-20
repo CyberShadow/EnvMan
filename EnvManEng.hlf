@@ -33,6 +33,7 @@ $ #EnvMan entry list#
  #Ins#          - inserts a new entry before the cursor position.
  #Del#          - deletes the selected entry.
  #F4#           - edits the selected entry.
+ #Alt-F4#       - edits the selected entry in FAR's text editor.
  #F5#           - copies the selected entry.
  #Ctrl-Up/Down# - moves the current set up or down.
 
