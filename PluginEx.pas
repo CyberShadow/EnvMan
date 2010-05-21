@@ -210,7 +210,7 @@ begin
   if (Copy(RawData, 1, 2)=#$FF#$FE) and (Length(RawData) mod 2 = 0) then
   begin
     SetLength(Data, Length(RawData) div 2 - 1);
-    Move(RawData[3], Data[1], Length(Data)-2);
+    Move(RawData[3], Data[1], Length(RawData)-2);
   end
   else
   {$ENDIF}
