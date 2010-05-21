@@ -30,13 +30,13 @@ $ #EnvMan entry list#
     The following commands are available:
 
  #+/-/Space#    - enable, disable or toggle the selected entry.
- #Ins#          - inserts a new entry before the cursor position.
- #Del#          - deletes the selected entry.
- #F4#           - edits the selected entry.
- #Alt-F4#       - edits the selected entry in FAR's text editor.
- #F5#           - copies the selected entry.
- #Ctrl-Up/Down# - moves the current set up or down.
- #Shift-F4#     - edits FAR's environment block in FAR's text editor.
+ #Ins#          - insert a new entry before the cursor position.
+ #Del#          - delete the selected entry.
+ #F4#           - edit the selected entry.
+ #Alt-F4#       - edit the selected entry in FAR's text editor.
+ #F5#           - copy the selected entry.
+ #Ctrl-Up/Down# - move the current set up or down.
+ #Shift-F4#     - edit FAR's environment block in FAR's text editor.
 
     The commands #Ins#, #F4# and #F5# will ~open a dialog~@Editor@ allowing to edit the entry's details.
     For #Ins# and #F5#, the new entry will be inserted if the changes in the dialog are accepted (the dialog is closed by selecting #OK#).
