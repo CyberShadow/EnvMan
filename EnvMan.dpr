@@ -726,7 +726,7 @@ begin
       Items[I].Checked := Integer(Entries[I].Enabled);
       Items[I].Separator := Integer({False}Entries[I].Name='-');
     end;
-    Current := FARAPI.Menu(FARAPI.ModuleNumber, -1, -1, 0, FMENU_AUTOHIGHLIGHT or FMENU_WRAPMODE, 'Environment Manager', '+,-,Space,Ins,Del,F4,Alt-F4,F5,Ctrl-Up,Ctrl-Down,Shift+F4', 'MainMenu', @BreakKeys, @BreakCode, @Items[0], Length(Items));
+    Current := FARAPI.Menu(FARAPI.ModuleNumber, -1, -1, 0, FMENU_AUTOHIGHLIGHT or FMENU_WRAPMODE, 'Environment Manager', 'Space,Ins,Del,F4,... [F1]', 'MainMenu', @BreakKeys, @BreakCode, @Items[0], Length(Items));
     if (Current=-1) and (BreakCode=-1) then
       Break;
     case BreakCode of
