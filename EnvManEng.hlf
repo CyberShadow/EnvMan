@@ -84,7 +84,7 @@ The syntax is as follows:
     If the command line is empty, EnvMan will display the ~entry list~@MainMenu@, but it will not display any warnings regarding external environment/configuration changes.
     Otherwise, it must begin with a character indicating the operation to perform: either #+#, #-#, #*#, #>#, #}#, #<# or #e#.
 
-    #+#, #-#, #*# will respectively enable, disable or toggle the configuration specified after the symbol. 
+    #+#, #-# and #*# will respectively enable, disable or toggle the configuration specified after the symbol. 
     For example, #envman:+Delphi# will enable the #Delphi# configuration entry.
 
     #># allows exporting FAR's environment to a file. 
