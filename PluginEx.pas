@@ -16,7 +16,7 @@ type
 {$ENDIF}
   FarChar = TFarChar;
   TFarStringDynArray = array of FarString;
-  
+
 function PToStr(P: PFarChar): FarString; inline; // work around Delphi's strict type declarations
 function CharToOemStr(S: FarString): FarString;
 function OemToCharStr(S: FarString): FarString;
@@ -57,7 +57,7 @@ type
   TFarDialog = class
     Items: array of TFarDialogItem;
     function Add(ItemType, Flags: Integer; X1, Y1, X2, Y2: Integer; InitialData: FarString; MaxLen: Integer = 0): Integer;
-    function Run(W, H: Integer; HelpTopic: PFarChar = nil): Integer;
+    function Run(GUID: TGUID; W, H: Integer; HelpTopic: PFarChar = nil): Integer;
     function GetData(Index: Integer): FarString;
   {$IFDEF UNICODE}
     destructor Destroy; override;
@@ -76,7 +76,7 @@ type
   );
 
 function GetMsg(MsgId: TMessage): PFarChar;
-function Message(Flags: DWORD; const Lines: array of FarString; ButtonCount: Integer = 0; HelpTopic: PFarChar = nil): Integer;
+function Message(GUID: TGUID; Flags: DWORD; const Lines: array of FarString; ButtonCount: Integer = 0; HelpTopic: PFarChar = nil): Integer;
 function EditString(var Data: FarString; Title: FarString): Boolean;
 
 {$IFNDEF UNICODE}
@@ -87,6 +87,9 @@ const DIF_NONE = 0;
 
 var
   FARAPI: TPluginStartupInfo;
+{$IFDEF FAR3}
+  PluginGUID: TGUID;
+{$ENDIF}
 
 implementation
 
@@ -475,17 +478,17 @@ begin
   {$ELSE}
   SetLength(Data, Length(Items));
   Data[Result] := InitialData;
-  NewItem.PtrData := @Data[Result][1];
-  NewItem.MaxLen := 0;
+  NewItem.{$IFDEF FAR3}Data     {$ELSE}PtrData{$ENDIF} := @Data[Result][1];
+  NewItem.{$IFDEF FAR3}MaxLength{$ELSE}MaxLen {$ENDIF} := 0;
   {$ENDIF}
 end;
 
-function TFarDialog.Run(W, H: Integer; HelpTopic: PFarChar = nil): Integer;
+function TFarDialog.Run(GUID: TGUID; W, H: Integer; HelpTopic: PFarChar = nil): Integer;
 begin
   {$IFNDEF UNICODE}
   Result := FARAPI.Dialog(FARAPI.ModuleNumber, -1, -1, W, H, HelpTopic, @Items[0], Length(Items));
   {$ELSE}
-  Handle := FARAPI.DialogInit(FARAPI.ModuleNumber, -1, -1, W, H, HelpTopic, @Items[0], Length(Items), 0, 0, nil, 0);
+  Handle := FARAPI.DialogInit({$IFDEF FAR3}PluginGUID, GUID{$ELSE}FARAPI.ModuleNumber{$ENDIF}, -1, -1, W, H, HelpTopic, @Items[0], Length(Items), 0, 0, nil, 0);
   Result := FARAPI.DialogRun(Handle);
   {$ENDIF}
 end;
@@ -514,16 +517,19 @@ end;
 
 function GetMsg(MsgId: TMessage): PFarChar;
 begin
-  Result := FARAPI.GetMsg(FARAPI.ModuleNumber, Integer(MsgId));
+  Result := FARAPI.GetMsg({$IFDEF FAR3}PluginGUID{$ELSE}FARAPI.ModuleNumber{$ENDIF}, Integer(MsgId));
 end;
 
-function Message(Flags: DWORD; const Lines: array of FarString; ButtonCount: Integer = 0; HelpTopic: PFarChar = nil): Integer;
+function Message(GUID: TGUID; Flags: DWORD; const Lines: array of FarString; ButtonCount: Integer = 0; HelpTopic: PFarChar = nil): Integer;
 begin
-  Result := FARAPI.Message(FARAPI.ModuleNumber, Flags, HelpTopic, PPCharArray(@Lines[0]), Length(Lines), ButtonCount);
+  Result := FARAPI.Message({$IFDEF FAR3}GUID, PluginGUID{$ELSE}FARAPI.ModuleNumber{$ENDIF}, Flags, HelpTopic, PPCharArray(@Lines[0]), Length(Lines), ButtonCount);
 end;
 
 // Open an editor on a temporary file to edit given string
 function EditString(var Data: FarString; Title: FarString): Boolean;
+const
+  FileCreateErrorGUID: TGUID = '{164559c7-1bb2-497e-b6eb-bdc431c121b6}';
+  FileLoadErrorGUID: TGUID = '{72955220-29c1-4493-8359-b0f91bd5592a}';
 var
   FileName: FarString;
 begin
@@ -531,7 +537,7 @@ begin
   FileName := GetTempFullFileName('Env');
   if not TrySaveText(FileName, Data) then
   begin
-    Message(FMSG_WARNING or FMSG_MB_OK, [GetMsg(MError), GetMsg(MFileCreateError), FileName]);
+    Message(FileCreateErrorGUID, FMSG_WARNING or FMSG_MB_OK, [GetMsg(MError), GetMsg(MFileCreateError), FileName]);
     Exit;
   end;
   if FARAPI.Editor(PFarChar(FileName), PFarChar(Title), -1, -1, -1, -1, EF_DISABLEHISTORY, 0, 1{$IFDEF UNICODE}, CP_UNICODE{$ENDIF})=EEC_MODIFIED then
@@ -539,7 +545,7 @@ begin
     Result := True;
     if not TryLoadText(FileName, Data) then
     begin
-      Message(FMSG_WARNING or FMSG_MB_OK, [GetMsg(MError), GetMsg(MFileLoadError), FileName]);
+      Message(FileLoadErrorGUID, FMSG_WARNING or FMSG_MB_OK, [GetMsg(MError), GetMsg(MFileLoadError), FileName]);
       Exit;
     end;
   end;

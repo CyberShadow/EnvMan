@@ -421,6 +421,7 @@ const
   W = 75;
   H = 7;
   ItemNr = 5;
+  GUID: TGUID = '{f213d17a-291e-4cb4-8765-d6e383067d25}';
 var
   Dialog: TFarDialog;
   Name: PFarChar;
@@ -438,15 +439,15 @@ begin
     Dialog.Add(DI_TEXT, DIF_NONE, 5, 2, 5+Length(Name), 2, Name);
 
     IIgnoredVariables := Dialog.Add(DI_EDIT, DIF_NONE, 5+Length(Name), 2, W-1-5, 2, IgnoredVariables);
-    Dialog.Items[IIgnoredVariables].Focus := 1;
+    Dialog.Items[IIgnoredVariables].{$IFDEF FAR3}Flags := Dialog.Items[N].Flags or DIF_FOCUS{$ELSE}Focus := 1{$ENDIF};
     
     OK := Dialog.Add(DI_BUTTON, DIF_CENTERGROUP, 0, H-1-2, 0, 0, GetMsg(MOK));
-    Dialog.Items[OK].DefaultButton := 1;
+    Dialog.Items[OK].{$IFDEF FAR3}Flags := Dialog.Items[N].Flags or DIF_DEFAULTBUTTON{$ELSE}DefaultButton := 1{$ENDIF};
     
     Dialog.Add(DI_BUTTON, DIF_CENTERGROUP, 0, H-1-2, 0, 0, GetMsg(MCancel));
 
     Result := False;
-    N := Dialog.Run(W, H, 'Configuration');
+    N := Dialog.Run(GUID, W, H, 'Configuration');
     if N <> OK then
       Exit;
 
@@ -477,6 +478,8 @@ const
   H = Rows + 8;
   ItemNr = 6; // not counting rows
   TotalItemNr = ItemNr+Rows;
+  TooManyLinesGUID: TGUID = '{726fd929-25fc-407f-b33a-73462d5a1453}';
+  GUID: TGUID = '{b15cb128-d71e-4277-bbac-eb6ffb4af77d}';
 
 var
   I, N: Integer;
@@ -485,7 +488,7 @@ var
 begin
   if Length(Entry.Vars) > Rows then
   begin
-    if Message(FMSG_WARNING or FMSG_MB_YESNO, [GetMsg(MWarning), GetMsg(MTooManyLines1), GetMsg(MTooManyLines2)])=0 then
+    if Message(TooManyLinesGUID, FMSG_WARNING or FMSG_MB_YESNO, [GetMsg(MWarning), GetMsg(MTooManyLines1), GetMsg(MTooManyLines2)])=0 then
       Result := EditEntryAlt(Entry)
     else
       Result := False;
@@ -499,9 +502,9 @@ begin
     Dialog.Add(DI_TEXT, DIF_NONE, 5, 2, 10, 2, GetMsg(MName));
 
     N := Dialog.Add(DI_EDIT, DIF_HISTORY, 11, 2, W-1-5-13, 2, Entry.Name);
-    Dialog.Items[N].Param.History := 'EnvVarsName';
+    Dialog.Items[N].{$IFNDEF FAR3}Param.{$ENDIF}History := 'EnvVarsName';
     if Entry.Name='' then
-      Dialog.Items[N].Focus := 1;
+      Dialog.Items[N].{$IFDEF FAR3}Flags := Dialog.Items[N].Flags or DIF_FOCUS{$ELSE}Focus := 1{$ENDIF};
     
     N := Dialog.Add(DI_CHECKBOX, DIF_NONE, W-1-5-10, 2, 0, 2, GetMsg(MEnabled));
     Dialog.Items[N].Param.Selected := Integer(Entry.Enabled);
@@ -511,16 +514,16 @@ begin
     begin
       N := Dialog.Add(DI_EDIT, DIF_EDITOR, 5, 4+I, W-1-5, 4+I, Entry.Vars[I], $10000);
       if (I=0) and (Entry.Name<>'') then
-        Dialog.Items[N].Focus := 1;
+        Dialog.Items[N].{$IFDEF FAR3}Flags := Dialog.Items[N].Flags or DIF_FOCUS{$ELSE}Focus := 1{$ENDIF};
     end;
 
     N := Dialog.Add(DI_BUTTON, DIF_CENTERGROUP, 0, H-1-2, 0, 0, GetMsg(MOK));
-    Dialog.Items[N].DefaultButton := 1;
+    Dialog.Items[N].{$IFDEF FAR3}Flags := Dialog.Items[N].Flags or DIF_DEFAULTBUTTON{$ELSE}DefaultButton := 1{$ENDIF};
     
     Dialog.Add(DI_BUTTON, DIF_CENTERGROUP, 0, H-1-2, 0, 0, GetMsg(MCancel));
 
     Result := False;
-    N := Dialog.Run(W, H, 'Editor');
+    N := Dialog.Run(GUID, W, H, 'Editor');
     if N<>4+Rows then
       Exit;
 
@@ -633,6 +636,23 @@ var
   InitialEntries: TEntryDynArray;
   NewVars, ChangedVars, DeletedVars, AllVars: TFarStringDynArray;
 const
+  {$IFDEF FAR3}
+  BreakKeys: array[0..12] of TFarKey = (
+    (VirtualKeyCode: VK_ADD     ; ControlKeyState: 0),
+    (VirtualKeyCode: VK_SUBTRACT; ControlKeyState: 0),
+    (VirtualKeyCode: VK_SPACE   ; ControlKeyState: 0),
+    (VirtualKeyCode: VK_INSERT  ; ControlKeyState: 0),
+    (VirtualKeyCode: VK_DELETE  ; ControlKeyState: 0),
+    (VirtualKeyCode: VK_F4      ; ControlKeyState: 0),
+    (VirtualKeyCode: VK_F5      ; ControlKeyState: 0),
+    (VirtualKeyCode: VK_UP      ; ControlKeyState: LEFT_CTRL_PRESSED),
+    (VirtualKeyCode: VK_DOWN    ; ControlKeyState: LEFT_CTRL_PRESSED),
+    (VirtualKeyCode: VK_F3      ; ControlKeyState: SHIFT_PRESSED),
+    (VirtualKeyCode: VK_F4      ; ControlKeyState: LEFT_ALT_PRESSED),
+    (VirtualKeyCode: VK_F4      ; ControlKeyState: SHIFT_PRESSED),
+    (VirtualKeyCode: 0          ; ControlKeyState: 0)
+  );
+  {$ELSE}
   VK_CTRLUP   = VK_UP   or (PKF_CONTROL shl 16);
   VK_CTRLDOWN = VK_DOWN or (PKF_CONTROL shl 16);
   VK_SHIFTF3  = VK_F3   or (PKF_SHIFT   shl 16);
@@ -653,6 +673,12 @@ const
     VK_SHIFTF4,
     0
   );
+  {$ENDIF}
+  EditedGUID: TGUID = '{0d0b19a9-93d6-2e4b-b417-05b258e6dee8}';
+  MenuGUID: TGUID = '{b84ab5a0-155e-909e-e4c3-15b3a0cbd19c}';
+  ConfirmDeleteGUID: TGUID = '{a42cda5f-1d11-86a5-4cf3-b7d0b53dff12}';
+  ViewEnvironmentGUID: TGUID = '{0a536038-d35c-c9e2-58eb-c6748bcad6ab}';
+  NoChangeGUID: TGUID = '{3eaf2001-118c-4cdc-ac4e-a75676c2456e}';
 
 begin
   Env := ReadEnvironment;
@@ -664,7 +690,7 @@ begin
     Entry.Name := 'Imported: ' + Join(AllVars, ', ');
     Entry.Enabled := True;
 
-    I := Message(FMSG_WARNING, ConcatStrings([
+    I := Message(EditedGUID, FMSG_WARNING, ConcatStrings([
       MakeStrings([GetMsg(MWarning), GetMsg(MEnvEdited1), GetMsg(MEnvEdited2), GetMsg(MEnvEdited3)]),
       DescribeDiff(NewVars, ChangedVars, DeletedVars),
       MakeStrings([GetMsg(MContinue), GetMsg(MCancel), GetMsg(MImport), GetMsg(MIgnore)])
@@ -722,11 +748,17 @@ begin
       {$ELSE}
       Items[I].TextPtr := PFarChar(Entries[I].Name);
       {$ENDIF}
-      Items[I].Selected := Integer(I=Current);
-      Items[I].Checked := Integer(Entries[I].Enabled);
-      Items[I].Separator := Integer({False}Entries[I].Name='-');
+      if I=Current then
+        Items[I].{$IFDEF FAR3}Flags := Items[I].Flags or MIF_SELECTED {$ELSE}Selected  := 1{$ENDIF};
+      if Entries[I].Enabled then
+        Items[I].{$IFDEF FAR3}Flags := Items[I].Flags or MIF_CHECKED  {$ELSE}Checked   := 1{$ENDIF};
+      if Entries[I].Name='-' then
+      begin
+        Items[I].{$IFDEF FAR3}Flags := Items[I].Flags or MIF_SEPARATOR{$ELSE}Separator := 1{$ENDIF};
+        Items[I].TextPtr := nil;
+      end;
     end;
-    Current := FARAPI.Menu(FARAPI.ModuleNumber, -1, -1, 0, FMENU_AUTOHIGHLIGHT or FMENU_WRAPMODE, 'Environment Manager', 'Space,Ins,Del,F4,... [F1]', 'MainMenu', @BreakKeys, @BreakCode, @Items[0], Length(Items));
+    Current := FARAPI.Menu({$IFDEF FAR3}PluginGUID, MenuGUID{$ELSE}FARAPI.ModuleNumber{$ENDIF}, -1, -1, 0, FMENU_AUTOHIGHLIGHT or FMENU_WRAPMODE, 'Environment Manager', 'Space,Ins,Del,F4,... [F1]', 'MainMenu', @BreakKeys, @BreakCode, @Items[0], Length(Items));
     if (Current=-1) and (BreakCode=-1) then
       Break;
     case BreakCode of
@@ -767,7 +799,7 @@ begin
       4: // VK_DELETE
         if Current >= 0 then
         begin
-          if Message(FMSG_WARNING or FMSG_MB_OKCANCEL, [GetMsg(MConfirmDeleteTitle), GetMsg(MConfirmDeleteText), Entries[Current].Name])=0 then
+          if Message(ConfirmDeleteGUID, FMSG_WARNING or FMSG_MB_OKCANCEL, [GetMsg(MConfirmDeleteTitle), GetMsg(MConfirmDeleteText), Entries[Current].Name])=0 then
             DeleteEntry(Current);
         end;
       5: // VK_F4
@@ -816,7 +848,7 @@ begin
             Inc(Current);
           end;
       9: // VK_SHIFTF3
-        Message(FMSG_MB_OK, ConcatStrings([MakeStrings(['Environment']), Env]));
+        Message(ViewEnvironmentGUID, FMSG_MB_OK, ConcatStrings([MakeStrings(['Environment']), Env]));
       10: // VK_ALTF4
         if Current >= 0 then
         begin
@@ -848,7 +880,7 @@ begin
   if not Quiet and EntriesEqual(InitialEntries, Entries) then // no changes
     if not StringsEqual(Env, NewEnv) then // but env has changed
     begin
-      if Message(FMSG_WARNING, [
+      if Message(NoChangeGUID, FMSG_WARNING, [
         GetMsg(MWarning),
         GetMsg(MNoChange1),
         GetMsg(MNoChange2),
@@ -866,25 +898,31 @@ end;
 procedure LoadEnv(FileName: FarString);
 var
   S: FarString;
+const
+  ErrorGUID: TGUID = '{c5acb8a8-65ee-5850-bc3d-38aee52fc7ca}';
 begin
   if not TryLoadText(FileName, S) then
   begin
-    Message(FMSG_WARNING or FMSG_MB_OK, [GetMsg(MError), GetMsg(MFileLoadError), FileName]);
+    Message(ErrorGUID, FMSG_WARNING or FMSG_MB_OK, [GetMsg(MError), GetMsg(MFileLoadError), FileName]);
     Exit
   end;
   SetEnvironment(SplitLines(S));
 end;
 
 procedure SaveEnv(FileName: FarString);
+const
+  ErrorGUID: TGUID = '{a46bea4d-3998-9547-6ed0-c3300cb1620c}';
 begin
   if not TrySaveText(FileName, EnvToText(ReadEnvironment)) then
-    Message(FMSG_WARNING or FMSG_MB_OK, [GetMsg(MError), GetMsg(MFileCreateError), FileName]);
+    Message(ErrorGUID, FMSG_WARNING or FMSG_MB_OK, [GetMsg(MError), GetMsg(MFileCreateError), FileName]);
 end;
 
 procedure SaveRawEnv(FileName: FarString);
+const
+  ErrorGUID: TGUID = '{39f779fb-8dcd-5734-70e8-1166bf6c6f1d}';
 begin
   if not TrySaveString(FileName, ReadRawEnvironment) then
-    Message(FMSG_WARNING or FMSG_MB_OK, [GetMsg(MError), GetMsg(MFileCreateError), FileName]);
+    Message(ErrorGUID, FMSG_WARNING or FMSG_MB_OK, [GetMsg(MError), GetMsg(MFileCreateError), FileName]);
 end;
 
 procedure ProcessCommandLine(PCmdLine: PFarChar);
@@ -892,6 +930,9 @@ var
   CmdLine, Name: FarString;
   Entries: TEntryDynArray;
   I: Integer;
+const
+  BadCommandCharGUID: TGUID = '{71148345-8141-1f0e-4453-3a073e7b5178}';
+  NoSuchEntryGUID: TGUID = '{7ad27a4e-b753-fd0f-cfb9-7b3409567649}';
 begin
   CmdLine := PCmdLine;
   if Length(CmdLine)=0 then
@@ -925,14 +966,14 @@ begin
           Entries[I].Enabled := not Entries[I].Enabled
         else
         begin
-          Message(FMSG_WARNING or FMSG_MB_OK, [GetMsg(MError), GetMsg(MBadCommandChar)]);
+          Message(BadCommandCharGUID, FMSG_WARNING or FMSG_MB_OK, [GetMsg(MError), GetMsg(MBadCommandChar)]);
           Exit;
         end;
         SaveEntry(I, Entries[I]);
         Update;
         Exit;
       end;
-    Message(FMSG_WARNING or FMSG_MB_OK, [GetMsg(MError), GetMsg(MNoSuchEntry), Name]);
+    Message(NoSuchEntryGUID, FMSG_WARNING or FMSG_MB_OK, [GetMsg(MError), GetMsg(MNoSuchEntry), Name]);
   end;
 end;
 
@@ -945,7 +986,11 @@ procedure SetStartupInfo(var psi: TPluginStartupInfo); stdcall;
 {$ENDIF}
 begin
   Move(psi, FARAPI, SizeOf(FARAPI));
+  {$IFDEF FAR3}
+  RegKey := 'Software\Far2\Plugins\EnvMan';
+  {$ELSE}
   RegKey := FARAPI.RootKey + '\EnvMan';
+  {$ENDIF}
   
   InitialEnvironment := ReadEnvironment;
   Update;
@@ -953,28 +998,86 @@ end;
 
 var
   PluginMenuStrings, PluginConfigStrings: array[0..0] of PFarChar;
+{$IFDEF FAR3}
+  PluginMenuGuids, PluginConfigGuids: array[0..0] of TGUID;
+{$ENDIF}
 
 {$IFDEF UNICODE} 
 procedure GetPluginInfoW(var pi: TPluginInfo); stdcall;
 {$ELSE} 
 procedure GetPluginInfo(var pi: TPluginInfo); stdcall;
 {$ENDIF}
+const
+  GUID: TGUID = '{d46eede5-5d88-8652-50a9-2aecc0e0cad4}';
 begin
   pi.StructSize := SizeOf(pi);
   pi.Flags := PF_PRELOAD or PF_EDITOR;
 
   PluginMenuStrings[0] := 'Environment Manager';
+{$IFDEF FAR3}
+  PluginMenuGuids[0] := GUID;
+  pi.PluginMenu.Strings := @PluginMenuStrings;
+  pi.PluginMenu.Guids := @PluginMenuGuids;
+  pi.PluginMenu.Count := 1;
+{$ELSE}
   pi.PluginMenuStrings := @PluginMenuStrings;
   pi.PluginMenuStringsNumber := 1;
+{$ENDIF}
 
   PluginConfigStrings[0] := 'Environment Manager';
+{$IFDEF FAR3}
+  PluginConfigGuids[0] := GUID;
+  pi.PluginConfig.Strings := @PluginConfigStrings;
+  pi.PluginConfig.Guids := @PluginConfigGuids;
+  pi.PluginConfig.Count := 1;
+{$ELSE}
   pi.PluginConfigStrings := @PluginConfigStrings;
   pi.PluginConfigStringsNumber := 1;
+{$ENDIF}
 
   pi.CommandPrefix := 'envman';
+{$IFNDEF FAR3}
   pi.Reserved := $4D766E45; // 'EnvM'
+{$ENDIF}
 end;
 
+{$IFDEF FAR3}
+procedure GetGlobalInfoW(Info: PGlobalInfo); stdcall;
+begin
+  Info.StructSize := SizeOf(pi);
+  Info.MinFarVersion := MakeFARVersion(3, 0, 0, 2927, VS_RELEASE);
+  Info.Version := MakeFARVersion(1, 6, 0, 0, VS_RELEASE);
+  Info.Guid := PluginGUID;
+  Info.Title := 'EnvMan';
+  Info.Description := 'Environment Manager';
+  Info.Author := 'Vladimir Panteleev <vladimir@thecybershadow.net>';
+end;
+
+function OpenW(Info: POpenInfo): THandle; stdcall;
+var
+  MacroInfo: POpenMacroInfo;
+  CommandLineInfo: POpenCommandLineInfo;
+begin
+  case Info.OpenFrom of
+    OPEN_FROMMACRO_,
+    OPEN_LUAMACRO: // ???
+      begin
+        MacroInfo := POpenMacroInfo(Info.Data);
+        if (MacroInfo.Count=1) and (MacroInfo.Values[0].fType=FMVT_STRING) then
+          ProcessCommandLine(MacroInfo.Values[0].Value.fString);
+      end;
+    OPEN_COMMANDLINE:
+      begin
+        CommandLineInfo := POpenCommandLineInfo(Info.Data);
+        ProcessCommandLine(CommandLineInfo.CommandLine);
+      end;
+    else
+      ShowEntryMenu(False);
+  end;
+
+  Result := 0;
+end;
+{$ELSE}
 {$IFDEF UNICODE}
 function OpenPluginW(OpenFrom: Integer; Item: INT_PTR): THandle; stdcall;
 {$ELSE}
@@ -996,6 +1099,7 @@ begin
     ShowEntryMenu(False);
   Result := INVALID_HANDLE_VALUE;
 end;
+{$ENDIF} // FAR3
 
 {$IFDEF UNICODE}
 function ConfigureW(Item: Integer): Integer; stdcall;
@@ -1011,7 +1115,19 @@ end;
 exports
   {$IFDEF UNICODE}SetStartupInfoW{$ELSE}SetStartupInfo{$ENDIF},
   {$IFDEF UNICODE}GetPluginInfoW{$ELSE}GetPluginInfo{$ENDIF},
+{$IFDEF FAR3}
+  GetGlobalInfoW, OpenW,
+{$ELSE}
   {$IFDEF UNICODE}OpenPluginW{$ELSE}OpenPlugin{$ENDIF},
+{$ENDIF}
   {$IFDEF UNICODE}ConfigureW{$ELSE}Configure{$ENDIF};
+
+{$IFDEF FAR3}
+const
+  PluginGUIDValue: TGUID = '{b09c3594-024e-115e-78d5-f7270a53606d}';
+
+begin
+  PluginGUID := PluginGUIDValue;
+{$ENDIF}
 
 end.
