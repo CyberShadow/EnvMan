@@ -756,6 +756,8 @@ begin
 
     SetLength(Items, 0); // Clear
     SetLength(Items, Length(Entries));
+    while (Current >= 0) and (Current < Length(Entries)) and (Entries[Current].Name='-') do
+      Inc(Current);
     if Current >= Length(Entries) then
       Current := Length(Entries)-1;
     if Current < 0 then
