@@ -11,7 +11,7 @@ library EnvMan;
 }
 
 uses
-  Windows, Types, {$IFDEF UNICODE}PluginW{$ELSE}Plugin{$ENDIF}, PluginEx;
+  Windows, Types, {$IFDEF UNICODE}PluginW{$ELSE}Plugin{$ENDIF}, PluginEx, Clipbrd;
 
 // ****************************************************************************
 
@@ -458,7 +458,7 @@ begin
   end;
 end;
 
-procedure SaveEntry(Index: Integer; var Entry: TEntry);
+procedure SaveEntry(Index: Integer; const Entry: TEntry);
 var
   Key: HKEY;
 begin
@@ -551,6 +551,11 @@ begin
   ]);
 end;
 
+function EntryToText(const Entry: TEntry): FarString;
+begin
+  Result := Join(EntryToLines(Entry), #13#10);
+end;
+
 function LinesToEntry(Lines: TFarStringDynArray): TEntry;
 var
   I: Integer;
@@ -568,14 +573,19 @@ begin
       AppendToStrings(Result.Vars, Lines[I]);
 end;
 
+function TextToEntry(Data: FarString): TEntry;
+begin
+  Result := LinesToEntry(SplitLines(Data));
+end;
+
 function EditEntryAlt(var Entry: TEntry): Boolean;
 var
   Data: FarString;
 begin
-  Data := Join(EntryToLines(Entry), #13#10);
+  Data := EntryToText(Entry);
   Result := EditString(Data, Entry.Name + ' - EnvMan');
   if Result then
-    Entry := LinesToEntry(SplitLines(Data));
+    Entry := TextToEntry(Data);
 end;
 
 function EnvToText(Env: TFarStringDynArray): FarString;
@@ -598,7 +608,7 @@ var
   Entries: TEntryDynArray;
   Current: Integer;
 
-  procedure InsertEntry(Index: Integer; var Entry: TEntry);
+  procedure InsertEntry(Index: Integer; const Entry: TEntry);
   var
     I: Integer;
   begin
@@ -637,7 +647,7 @@ var
   NewVars, ChangedVars, DeletedVars, AllVars: TFarStringDynArray;
 const
   {$IFDEF FAR3}
-  BreakKeys: array[0..12] of TFarKey = (
+  BreakKeys: array[0..15] of TFarKey = (
     (VirtualKeyCode: VK_ADD     ; ControlKeyState: 0),
     (VirtualKeyCode: VK_SUBTRACT; ControlKeyState: 0),
     (VirtualKeyCode: VK_SPACE   ; ControlKeyState: 0),
@@ -650,15 +660,21 @@ const
     (VirtualKeyCode: VK_F3      ; ControlKeyState: SHIFT_PRESSED),
     (VirtualKeyCode: VK_F4      ; ControlKeyState: LEFT_ALT_PRESSED),
     (VirtualKeyCode: VK_F4      ; ControlKeyState: SHIFT_PRESSED),
+    (VirtualKeyCode: VK_DELETE  ; ControlKeyState: SHIFT_PRESSED),
+    (VirtualKeyCode: VK_INSERT  ; ControlKeyState: RIGHT_CTRL_PRESSED),
+    (VirtualKeyCode: VK_INSERT  ; ControlKeyState: SHIFT_PRESSED),
     (VirtualKeyCode: 0          ; ControlKeyState: 0)
   );
   {$ELSE}
-  VK_CTRLUP   = VK_UP   or (PKF_CONTROL shl 16);
-  VK_CTRLDOWN = VK_DOWN or (PKF_CONTROL shl 16);
-  VK_SHIFTF3  = VK_F3   or (PKF_SHIFT   shl 16);
-  VK_ALTF4    = VK_F4   or (PKF_ALT     shl 16);
-  VK_SHIFTF4  = VK_F4   or (PKF_SHIFT   shl 16);
-  BreakKeys: array[0..12] of Integer = (
+  VK_CTRLUP   = VK_UP     or (PKF_CONTROL shl 16);
+  VK_CTRLDOWN = VK_DOWN   or (PKF_CONTROL shl 16);
+  VK_SHIFTF3  = VK_F3     or (PKF_SHIFT   shl 16);
+  VK_ALTF4    = VK_F4     or (PKF_ALT     shl 16);
+  VK_SHIFTF4  = VK_F4     or (PKF_SHIFT   shl 16);
+  VK_SHIFTDEL = VK_DELETE or (PKF_SHIFT   shl 16);
+  VK_CTRLINS  = VK_INSERT or (PKF_CONTROL shl 16);
+  VK_SHIFTINS = VK_INSERT or (PKF_SHIFT   shl 16);
+  BreakKeys: array[0..15] of Integer = (
     VK_ADD,
     VK_SUBTRACT,
     VK_SPACE,
@@ -671,6 +687,9 @@ const
     VK_SHIFTF3,
     VK_ALTF4,
     VK_SHIFTF4,
+    VK_SHIFTDEL,
+    VK_CTRLINS,
+    VK_SHIFTINS,
     0
   );
   {$ENDIF}
@@ -862,7 +881,22 @@ begin
           Update;
         if EditEnvironment then
           Exit;
-      end
+      end;
+      12: // VK_SHIFTDEL
+        if Current >= 0 then
+        begin
+          Clipboard.AsText := EntryToText(Entries[Current]);
+          DeleteEntry(Current);
+        end;
+      13: // VK_CTRLINS
+        if Current >= 0 then
+          Clipboard.AsText := EntryToText(Entries[Current]);
+      14: // VK_SHIFTINS
+      begin
+        if Current < 0 then
+          Current := 0;
+        InsertEntry(Current, TextToEntry(Clipboard.AsText));
+      end;
       else // VK_RETURN / hotkey
         if Current >= 0 then
         begin
