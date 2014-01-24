@@ -509,7 +509,7 @@ begin
   else
     Result := PFarChar(@Items[Index].Data.Data[0]);
   {$ELSE}
-  Result := PFarChar(FARAPI.SendDlgMessage(Handle, DM_GETCONSTTEXTPTR, Index, 0));
+  Result := PFarChar(FARAPI.SendDlgMessage(Handle, DM_GETCONSTTEXTPTR, Index, {$IFDEF FAR3}nil{$ELSE}0{$ENDIF}));
   {$ENDIF}
 end;
 

@@ -439,10 +439,10 @@ begin
     Dialog.Add(DI_TEXT, DIF_NONE, 5, 2, 5+Length(Name), 2, Name);
 
     IIgnoredVariables := Dialog.Add(DI_EDIT, DIF_NONE, 5+Length(Name), 2, W-1-5, 2, IgnoredVariables);
-    Dialog.Items[IIgnoredVariables].{$IFDEF FAR3}Flags := Dialog.Items[N].Flags or DIF_FOCUS{$ELSE}Focus := 1{$ENDIF};
+    Dialog.Items[IIgnoredVariables].{$IFDEF FAR3}Flags := Dialog.Items[IIgnoredVariables].Flags or DIF_FOCUS{$ELSE}Focus := 1{$ENDIF};
     
     OK := Dialog.Add(DI_BUTTON, DIF_CENTERGROUP, 0, H-1-2, 0, 0, GetMsg(MOK));
-    Dialog.Items[OK].{$IFDEF FAR3}Flags := Dialog.Items[N].Flags or DIF_DEFAULTBUTTON{$ELSE}DefaultButton := 1{$ENDIF};
+    Dialog.Items[OK].{$IFDEF FAR3}Flags := Dialog.Items[OK].Flags or DIF_DEFAULTBUTTON{$ELSE}DefaultButton := 1{$ENDIF};
     
     Dialog.Add(DI_BUTTON, DIF_CENTERGROUP, 0, H-1-2, 0, 0, GetMsg(MCancel));
 
@@ -694,10 +694,12 @@ const
   );
   {$ENDIF}
   EditedGUID: TGUID = '{0d0b19a9-93d6-2e4b-b417-05b258e6dee8}';
-  MenuGUID: TGUID = '{b84ab5a0-155e-909e-e4c3-15b3a0cbd19c}';
   ConfirmDeleteGUID: TGUID = '{a42cda5f-1d11-86a5-4cf3-b7d0b53dff12}';
   ViewEnvironmentGUID: TGUID = '{0a536038-d35c-c9e2-58eb-c6748bcad6ab}';
   NoChangeGUID: TGUID = '{3eaf2001-118c-4cdc-ac4e-a75676c2456e}';
+  {$IFDEF FAR3}
+  MenuGUID: TGUID = '{b84ab5a0-155e-909e-e4c3-15b3a0cbd19c}';
+  {$ENDIF}
 
 begin
   Env := ReadEnvironment;
@@ -776,7 +778,11 @@ begin
       if Entries[I].Name='-' then
       begin
         Items[I].{$IFDEF FAR3}Flags := Items[I].Flags or MIF_SEPARATOR{$ELSE}Separator := 1{$ENDIF};
+        {$IFNDEF UNICODE}
+        CopyStrToBuf('', Items[I].Text, SizeOf(Items[I].Text));
+        {$ELSE}
         Items[I].TextPtr := nil;
+        {$ENDIF}
       end;
     end;
     Current := FARAPI.Menu({$IFDEF FAR3}PluginGUID, MenuGUID{$ELSE}FARAPI.ModuleNumber{$ENDIF}, -1, -1, 0, FMENU_AUTOHIGHLIGHT or FMENU_WRAPMODE, 'Environment Manager', 'Space,Ins,Del,F4,... [F1]', 'MainMenu', @BreakKeys, @BreakCode, @Items[0], Length(Items));
@@ -1043,8 +1049,10 @@ procedure GetPluginInfoW(var pi: TPluginInfo); stdcall;
 {$ELSE} 
 procedure GetPluginInfo(var pi: TPluginInfo); stdcall;
 {$ENDIF}
+{$IFDEF FAR3}
 const
   GUID: TGUID = '{d46eede5-5d88-8652-50a9-2aecc0e0cad4}';
+{$ENDIF}
 begin
   pi.StructSize := SizeOf(pi);
   pi.Flags := PF_PRELOAD or PF_EDITOR;
