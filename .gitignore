@@ -1,0 +1,13 @@
+*.dll
+*.drc
+*.map
+*.o
+*.obj
+*.res
+*.RES
+*.zip
+*.ppu
+*.dcu
+*.rst
+
+/build-config.bat
