@@ -10,11 +10,11 @@ $ #EnvMan#
     The plugin allows users to pre-configure sets of environment variable settings, and quickly enable or disable these sets at any time.
     This applies not only to #%PATH%#, but any other environment variables as well.
 
-    The plugin saves the state of the environment when FAR Manager is started.
+    The plugin saves the state of the environment when Far Manager is started.
 Then, it applies each enabled entry, one on top of the other.
     The user can "chain" entries by including the old value of the variable in the new value, for example: #PATH=%PATH%;C:\ExamplePath#
 
-    To set up and use the plugin, open it from FAR's ~"Plugin commands"~@:PluginCommands@ menu.
+    To set up and use the plugin, open it from Far's ~"Plugin commands"~@:PluginCommands@ menu.
 This will bring up the ~settings list~@MainMenu@.
     You may also ~configure~@Configuration@ a list of environment variables for EnvMan to ignore using the ~"Plugins configuration"~@:PluginsConfig@ menu.
     You may also ~import environment changes from a batch file~@ImportFromBatch@.
@@ -33,10 +33,10 @@ $ #EnvMan entry list#
  #Ins#          - insert a new entry before the cursor position.
  #Del#          - delete the selected entry.
  #F4#           - edit the selected entry.
- #Alt-F4#       - edit the selected entry in FAR's text editor.
+ #Alt-F4#       - edit the selected entry in Far's text editor.
  #F5#           - copy the selected entry.
  #Ctrl-Up/Down# - move the current set up or down.
- #Shift-F4#     - edit FAR's environment block in FAR's text editor.
+ #Shift-F4#     - edit Far's environment block in Far's text editor.
  #Shift-Delete# - cut the selected entry to clipboard as text.
  #Ctrl-Insert#  - copy the selected entry to clipboard as text.
  #Shift-Insert# - paste an entry as text from clipboard.
@@ -48,7 +48,7 @@ $ #EnvMan entry list#
     Similarly, separators can be removed by moving entries in the opposite direction - separators will disappear when there are no entries between them and the edge of the list.
 
     Changes are applied to the environment as soon as the menu is closed.
-    If you edited the settings in another FAR instance and would like to apply them to the current instance, simply open and close the sets list.
+    If you edited the settings in another Far instance and would like to apply them to the current instance, simply open and close the sets list.
 
     ~Back to Contents~@Contents@
 
@@ -81,7 +81,7 @@ $ #EnvMan configuration#
 @CommandLine
 $ #Command line#
 
-    You may control EnvMan using the FAR command line and the #envman:# prefix.
+    You may control EnvMan using the Far command line and the #envman:# prefix.
 The syntax is as follows:
 
     If the command line is empty, EnvMan will display the ~entry list~@MainMenu@, but it will not display any warnings regarding external environment/configuration changes.
@@ -90,8 +90,8 @@ The syntax is as follows:
     #+#, #-# and #*# will respectively enable, disable or toggle the configuration specified after the symbol. 
     For example, #envman:+Delphi# will enable the #Delphi# configuration entry.
 
-    #># allows exporting FAR's environment to a file. 
-    It is similar to #set > file.txt#, however there may be some differences due to cmd-specific variables like PROMPT, FAR plugins, or 64-bit architecture specifics if you use a 64-bit system.
+    #># allows exporting Far's environment to a file. 
+    It is similar to #set > file.txt#, however there may be some differences due to cmd-specific variables like PROMPT, Far plugins, or 64-bit architecture specifics if you use a 64-bit system.
     EnvMan will also not include ignored variables as set in its configuration.
     Also, if you use the Unicode version of the plugin, the output will be saved in Unicode, unlike when using #set#.
     You can use #}# to dump the raw, null-separated environment block.
@@ -100,7 +100,7 @@ The syntax is as follows:
     The file must contain one #NAME=Value# pair per line.
     This feature can be used to easily ~import environment changes from a batch file~@ImportFromBatch@.
 
-    #e# will open a FAR editor with the current environment (same as pressing #Shift-F4# in the ~entry list~@MainMenu@).
+    #e# will open a Far editor with the current environment (same as pressing #Shift-F4# in the ~entry list~@MainMenu@).
 
     You may also use the same syntax using the experimental #callplugin# ~macro~@:KeyMacro@ function.
     EnvMan's SysID is #0x4D766E45#.
@@ -115,18 +115,18 @@ $ #Import from a batch file#
     This section explains how you can import the changes set by these batch files into an EnvMan configuration.
 
     First, you must create a new batch file which calls the software package's batch file, then saves the environment to a file.
-    This is required because child processes spawned by FAR have their own environment block, and FAR / EnvMan can't "see" the environment changes performed by child processes.
+    This is required because child processes spawned by Far have their own environment block, and Far / EnvMan can't "see" the environment changes performed by child processes.
     Thus, your batch file should look something like this:
 
     #call "C:\Program Files\Product name\setupenv.bat"#
     #set > env.txt#
 
     When launched, your batch file should save the environment, containing changes from the respective .bat file, to the file #env.txt#. 
-    The next step is to import the environment into FAR. You can do this using the ~EnvMan command line~@CommandLine@ as follows:
+    The next step is to import the environment into Far. You can do this using the ~EnvMan command line~@CommandLine@ as follows:
 
     #envman:<env.txt#
 
-    The environment should now be imported into FAR's process. 
+    The environment should now be imported into Far's process. 
 You can verify this by running the #set# command and examining the output.
     Now, if you try to open EnvMan using the ~Plugin commands~@:PluginCommands@ menu, EnvMan will detect an unmanaged change to the environment, and offer several options.
 Here, select #Import#.
