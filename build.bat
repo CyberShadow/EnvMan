@@ -39,6 +39,6 @@ if not exist %OUTDIR% mkdir %OUTDIR%
 call %PC% %PC_DEFINE%FAR%1 %UNICODE% %PC_SEARCH%%FARSDK% %PC_OUTDIR%%OUTDIR% EnvMan.dpr
 if errorlevel 1 exit 1
 if not exist %OUTDIR%\EnvMan.dll exit 1
-7z a out\EnvMan.%CONFIG%.zip %OUTDIR%\EnvMan.dll *.lng *.hlf
+7z a out\EnvMan.%CONFIG%.zip .\%OUTDIR%\EnvMan.dll *.lng *.hlf
 
 goto :eof
