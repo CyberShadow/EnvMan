@@ -8,7 +8,7 @@ $ #EnvMan#
     It is especially useful for people who use several toolchains with program name conflicts, or different versions of the same command-line software packages.
 
     The plugin allows users to pre-configure sets of environment variable settings, and quickly enable or disable these sets at any time.
-    This applies not only to PATH, but any other environment variables as well.
+    This applies not only to #%PATH%#, but any other environment variables as well.
 
     The plugin saves the state of the environment when FAR Manager is started.
 Then, it applies each enabled entry, one on top of the other.
