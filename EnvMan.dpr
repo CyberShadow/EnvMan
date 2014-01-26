@@ -11,7 +11,7 @@ library EnvMan;
 }
 
 uses
-  Windows, Types, {$IFDEF UNICODE}PluginW{$ELSE}Plugin{$ENDIF}, PluginEx, Clipbrd;
+  Windows, Types, {$IFDEF UNICODE}PluginW{$ELSE}Plugin{$ENDIF}, PluginEx;
 
 // ****************************************************************************
 
@@ -162,6 +162,49 @@ begin
   SetLength(Result, ExpandEnvironmentStringsF(PFarChar(S), nil, 0));
   ExpandEnvironmentStringsF(PFarChar(S), @Result[1], Length(Result));
   SetLength(Result, Length(Result)-1); // terminating null
+end;
+
+// ****************************************************************************
+
+function GetClipboardText: String;
+var
+  Data: HGLOBAL;
+begin
+  if not OpenClipboard(0) then
+    Exit;
+  try
+    Data := GetClipboardData(CF_TEXT);
+    if Data = 0 then
+      Exit;
+    Result := PChar(GlobalLock(Data));
+    GlobalUnlock(Data);
+  finally
+    CloseClipboard;
+  end;
+end;
+
+procedure SetClipboard(Format: Cardinal; const Buffer; Size: Cardinal);
+var
+  Data: HGLOBAL;
+  DataPtr: Pointer;
+begin
+  if not OpenClipboard(0) then
+    Exit;
+  try
+    Data := GlobalAlloc(GMEM_MOVEABLE+GMEM_DDESHARE, Size);
+    DataPtr := GlobalLock(Data);
+    Move(Buffer, DataPtr^, Size);
+    EmptyClipboard;
+    SetClipboardData(Format, Data);
+    GlobalUnlock(Data);
+  finally
+    CloseClipboard;
+  end;
+end;
+
+procedure SetClipboardText(const Value: String);
+begin
+  SetClipboard(CF_TEXT, PChar(Value)^, Length(Value) + 1);
 end;
 
 // ****************************************************************************
@@ -838,17 +881,17 @@ begin
       12: // VK_SHIFTDEL
         if Current >= 0 then
         begin
-          Clipboard.AsText := EntryToText(Entries[Current]);
+          SetClipboardText(EntryToText(Entries[Current]));
           DeleteEntry(Current);
         end;
       13: // VK_CTRLINS
         if Current >= 0 then
-          Clipboard.AsText := EntryToText(Entries[Current]);
+          SetClipboardText(EntryToText(Entries[Current]));
       14: // VK_SHIFTINS
       begin
         if Current < 0 then
           Current := 0;
-        InsertEntry(Current, TextToEntry(Clipboard.AsText));
+        InsertEntry(Current, TextToEntry(GetClipboardText));
       end;
       15: // VK_F2
       begin
