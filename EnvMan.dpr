@@ -440,7 +440,7 @@ begin
 
     N := Dialog.Add(DI_BUTTON, DIF_CENTERGROUP, 0, H-1-2, 0, 0, GetMsg(MOK));
     Dialog.Items[N].{$IFDEF FAR3}Flags := Dialog.Items[N].Flags or DIF_DEFAULTBUTTON{$ELSE}DefaultButton := 1{$ENDIF};
-    
+
     Dialog.Add(DI_BUTTON, DIF_CENTERGROUP, 0, H-1-2, 0, 0, GetMsg(MCancel));
 
     Result := False;
@@ -449,7 +449,7 @@ begin
       Exit;
 
     Entry.Name := Dialog.GetData(2);
-    Entry.Enabled := Boolean(Dialog.Items[3].Param.Selected);
+    Entry.Enabled := Dialog.GetChecked(3);
     for I:=0 to Rows-1 do
       Entry.Vars[I] := Dialog.GetData(4+I);
     

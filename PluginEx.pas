@@ -59,6 +59,7 @@ type
     function Add(ItemType, Flags: Integer; X1, Y1, X2, Y2: Integer; InitialData: FarString; MaxLen: Integer = 0): Integer;
     function Run(GUID: TGUID; W, H: Integer; HelpTopic: PFarChar = nil): Integer;
     function GetData(Index: Integer): FarString;
+    function GetChecked(Index: Integer): Boolean;
   {$IFDEF UNICODE}
     destructor Destroy; override;
   {$ENDIF}
@@ -544,6 +545,15 @@ begin
     Result := PFarChar(@Items[Index].Data.Data[0]);
   {$ELSE}
   Result := PFarChar(FARAPI.SendDlgMessage(Handle, DM_GETCONSTTEXTPTR, Index, {$IFDEF FAR3}nil{$ELSE}0{$ENDIF}));
+  {$ENDIF}
+end;
+
+function TFarDialog.GetChecked(Index: Integer): Boolean;
+begin
+  {$IFNDEF UNICODE}
+  Result := Boolean(Items[Index].Param.Selected);
+  {$ELSE}
+  Result := Boolean(FARAPI.SendDlgMessage(Handle, DM_GETCHECK, Index, {$IFDEF FAR3}nil{$ELSE}0{$ENDIF}));
   {$ENDIF}
 end;
 
