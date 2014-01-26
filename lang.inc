@@ -32,6 +32,7 @@ MKeep,
 
 MConfiguration,
 MIgnoredVariables,
+MAlwaysUseEditor,
 
 MError,
 MNoSuchEntry,

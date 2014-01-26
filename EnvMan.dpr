@@ -29,6 +29,15 @@ begin
   Settings.Free;
 end;
 
+function GetPluginInt(Name: FarString): Integer;
+var
+  Settings: TSettings;
+begin
+  Settings := CreateSettings;
+  Result := Settings.GetInt(Name);
+  Settings.Free;
+end;
+
 function GetIgnoredVariables: FarString;
 begin
   Result := GetPluginString('IgnoredVariables', 'FARENV_EXPORT_HWND');
@@ -326,31 +335,36 @@ end;
 function DoConfigure(IgnoredVariables: FarString): Boolean; overload;
 const
   W = 75;
-  H = 7;
+  H = 9;
   ItemNr = 5;
   GUID: TGUID = '{f213d17a-291e-4cb4-8765-d6e383067d25}';
 var
   Dialog: TFarDialog;
-  Name: PFarChar;
-  N, OK, IIgnoredVariables: Integer;
+  MsgIgnoredVariables: PFarChar;
+  N, OK, IIgnoredVariables, IAlwaysUseEditor: Integer;
+  Settings: TSettings;
 begin
   while Copy(IgnoredVariables, 1, 1)=',' do
     Delete(IgnoredVariables, 1, 1);
-  
+
+  Settings := CreateSettings;
   Dialog := TFarDialog.Create;
   try
     Dialog.Add(DI_DOUBLEBOX, DIF_NONE, 3, 1, W-1-3, H-1-1, GetMsg(MConfiguration));
-    
-    Name := GetMsg(MIgnoredVariables);
-    
-    Dialog.Add(DI_TEXT, DIF_NONE, 5, 2, 5+Length(Name), 2, Name);
 
-    IIgnoredVariables := Dialog.Add(DI_EDIT, DIF_NONE, 5+Length(Name), 2, W-1-5, 2, IgnoredVariables);
+    MsgIgnoredVariables := GetMsg(MIgnoredVariables);
+
+    Dialog.Add(DI_TEXT, DIF_NONE, 5, 2, 5+Length(MsgIgnoredVariables), 2, MsgIgnoredVariables);
+
+    IIgnoredVariables := Dialog.Add(DI_EDIT, DIF_NONE, 5+Length(MsgIgnoredVariables), 2, W-1-5, 2, IgnoredVariables);
     Dialog.Items[IIgnoredVariables].{$IFDEF FAR3}Flags := Dialog.Items[IIgnoredVariables].Flags or DIF_FOCUS{$ELSE}Focus := 1{$ENDIF};
-    
+
+    IAlwaysUseEditor := Dialog.Add(DI_CHECKBOX, DIF_NONE, 5, 4, 0, 0, GetMsg(MAlwaysUseEditor));
+    Dialog.Items[IAlwaysUseEditor].Param.Selected := Settings.GetInt('AlwaysUseEditor');
+
     OK := Dialog.Add(DI_BUTTON, DIF_CENTERGROUP, 0, H-1-2, 0, 0, GetMsg(MOK));
     Dialog.Items[OK].{$IFDEF FAR3}Flags := Dialog.Items[OK].Flags or DIF_DEFAULTBUTTON{$ELSE}DefaultButton := 1{$ENDIF};
-    
+
     Dialog.Add(DI_BUTTON, DIF_CENTERGROUP, 0, H-1-2, 0, 0, GetMsg(MCancel));
 
     Result := False;
@@ -358,10 +372,12 @@ begin
     if N <> OK then
       Exit;
 
-    SetPluginString('IgnoredVariables', Dialog.GetData(IIgnoredVariables));
+    Settings.SetString('IgnoredVariables', Dialog.GetData(IIgnoredVariables));
+    Settings.SetInt('AlwaysUseEditor', Integer(Dialog.GetChecked(IAlwaysUseEditor)));
     Result := True;
   finally
     Dialog.Free;
+    Settings.Free;
   end;
 end;
 
@@ -407,6 +423,12 @@ var
   Dialog: TFarDialog;
 
 begin
+  if GetPluginInt('AlwaysUseEditor')<>0 then
+  begin
+    Result := EditEntryAlt(Entry);
+    Exit;
+  end;
+
   if Length(Entry.Vars) > Rows then
   begin
     if Message(TooManyLinesGUID, FMSG_WARNING or FMSG_MB_YESNO, [GetMsg(MWarning), GetMsg(MTooManyLines1), GetMsg(MTooManyLines2)])=0 then
