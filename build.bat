@@ -21,6 +21,7 @@ del *.dll 2> nul
 del *.o 2> nul
 del *.obj 2> nul
 del *.ppu 2> nul
+del *.dcu 2> nul
 if exist *.dll echo Can't delete DLLs & exit /b 1
 
 call set FARSDK=%%FAR%1SDK%%
