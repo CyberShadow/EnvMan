@@ -2,7 +2,7 @@
 #define PLUGIN_NAME "EnvMan"
 #define PLUGIN_FILENAME "EnvMan.dll"
 #define PLUGIN_VERSION_MAJOR 1
-#define PLUGIN_VERSION_MINOR 6
+#define PLUGIN_VERSION_MINOR 7
 
 #define DO_STRINGIZE(x) #x
 #define STRINGIZE(x) DO_STRINGIZE(x)

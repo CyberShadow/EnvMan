@@ -1033,7 +1033,7 @@ procedure GetGlobalInfoW(Info: PGlobalInfo); stdcall;
 begin
   Info.StructSize := SizeOf(pi);
   Info.MinFarVersion := MakeFARVersion(3, 0, 0, 2927, VS_RELEASE);
-  Info.Version := MakeFARVersion(1, 6, 0, 0, VS_RELEASE);
+  Info.Version := MakeFARVersion(1, 7, 0, 0, VS_RELEASE);
   Info.Guid := PluginGUID;
   Info.Title := 'EnvMan';
   Info.Description := 'Environment Manager';
