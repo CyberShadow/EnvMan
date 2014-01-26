@@ -91,6 +91,40 @@ var
   PluginGUID: TGUID;
 {$ENDIF}
 
+type
+  TSettings = class
+    function  GetString  (Name: FarString; Default: FarString = ''): FarString; virtual; abstract;
+    procedure SetString  (Name: FarString; Value: FarString);                   virtual; abstract;
+    function  GetStrings (Name: FarString): TFarStringDynArray;                 virtual; abstract;
+    procedure SetStrings (Name: FarString; Value: TFarStringDynArray);          virtual; abstract;
+    function  GetInt     (Name: FarString): Integer;                            virtual; abstract;
+    procedure SetInt     (Name: FarString; Value: Integer);                     virtual; abstract;
+    function  OpenKey    (Name: FarString): TSettings;                          virtual; abstract;
+    procedure DeleteKey  (Name: FarString);                                     virtual; abstract;
+    function  ValueExists(Name: FarString): Boolean;                            virtual; abstract;
+    function  KeyExists  (Name: FarString): Boolean;                            virtual; abstract;
+  end;
+
+  TRegistrySettings = class(TSettings)
+    constructor Create(Name: FarString);
+    constructor CreateFrom(SubKey: HKEY);
+    destructor Destroy; override;
+    function  GetString (Name: FarString; Default: FarString = ''): FarString; override;
+    procedure SetString (Name: FarString; Value: FarString); override;
+    function  GetStrings(Name: FarString): TFarStringDynArray; override;
+    procedure SetStrings(Name: FarString; Value: TFarStringDynArray); override;
+    function  GetInt    (Name: FarString): Integer; override;
+    procedure SetInt    (Name: FarString; Value: Integer); override;
+    function  OpenKey   (Name: FarString): TSettings; override;
+    procedure DeleteKey  (Name: FarString); override;
+    function  ValueExists(Name: FarString): Boolean; override;
+    function  KeyExists  (Name: FarString): Boolean; override;
+  private
+    Key: HKEY;
+    function  GetStringRaw(Name: FarString; Default: FarString = ''): FarString;
+    procedure SetStringRaw(Name: FarString; Value: FarString; RegType: Cardinal);
+  end;
+
 implementation
 
 // ************************************************************************************************************************************************************
@@ -458,7 +492,7 @@ begin
   NewItem.Y1 := Y1;
   NewItem.X2 := X2;
   NewItem.Y2 := Y2;
-  
+
   {$IFNDEF UNICODE}
   if MaxLen < Length(InitialData)+1 then
     MaxLen := Length(InitialData)+1;
@@ -550,6 +584,154 @@ begin
     end;
   end;
   DeleteFileF(PFarChar(FileName));
+end;
+
+// ************************************************************************************************************************************************************
+
+constructor TRegistrySettings.Create(Name: FarString);
+var
+  RegKey: FarString;
+begin
+  {$IFDEF FAR3}
+  RegKey := 'Software\Far2\Plugins\' + Name;
+  {$ELSE}
+  RegKey := FARAPI.RootKey + FarString('\') + Name;
+  {$ENDIF}
+
+  Key := 0;
+  RegCreateKeyExF(HKEY_CURRENT_USER, PFarChar(RegKey), 0, nil, 0, KEY_ALL_ACCESS, nil, Key, nil);
+  //if Key=0 then
+  //  raise Exception.Create('Can''t open registry key '+ RegKey);
+end;
+
+constructor TRegistrySettings.CreateFrom(SubKey: HKEY);
+begin
+  Key := SubKey;
+end;
+
+destructor TRegistrySettings.Destroy;
+begin
+  RegCloseKey(Key);
+end;
+
+function TRegistrySettings.GetStringRaw(Name: FarString; Default: FarString = ''): FarString;
+var
+  R: Integer;
+  Size: Cardinal;
+  PName: PFarChar;
+begin
+  Result := Default;
+
+  if Name='' then
+    PName := nil
+  else
+    PName := PFarChar(Name);
+
+  Size := 0;
+  R := RegQueryValueExF(Key, PName, nil, nil, nil, @Size);
+  if R<>ERROR_SUCCESS then
+    Exit;
+
+  SetLength(Result, Size div SizeOf(FarChar));
+  if Size=0 then
+    Exit;
+
+  R := RegQueryValueExF(Key, PName, nil, nil, @Result[1], @Size);
+  if R<>ERROR_SUCCESS then
+    Result := Default;
+end;
+
+function TRegistrySettings.GetString(Name: FarString; Default: FarString = ''): FarString;
+begin
+  Result := GetStringRaw(Name, Default {+ #0});
+  {$IFNDEF UNICODE}
+  CharToOem(@Result[1], @Result[1]);
+  {$ENDIF}
+  Result := PFarChar(Result); // Reinterpret as null-terminated
+end;
+
+function TRegistrySettings.GetStrings(Name: FarString): TFarStringDynArray;
+{$IFNDEF UNICODE}
+var
+  I: Integer;
+{$ENDIF}
+begin
+  Result := NullStringsToArray(PFarChar(GetStringRaw(Name)));
+  {$IFNDEF UNICODE}
+  for I:=0 to High(Result) do
+    CharToOem(PFarChar(Result[I]), PFarChar(Result[I]));
+  {$ENDIF}
+end;
+
+function TRegistrySettings.GetInt(Name: FarString): Integer;
+var
+  Size: Cardinal;
+begin
+  Result := 0;
+  Size := SizeOf(Result);
+  RegQueryValueExF(Key, PFarChar(Name), nil, nil, @Result, @Size);
+end;
+
+procedure TRegistrySettings.SetStringRaw(Name: FarString; Value: FarString; RegType: Cardinal);
+begin
+  RegSetValueExF(Key, PFarChar(Name), 0, RegType, @Value[1], Length(Value) * SizeOf(FarChar));
+end;
+
+procedure TRegistrySettings.SetString(Name: FarString; Value: FarString);
+begin
+  {$IFNDEF UNICODE}
+  OemToChar(@Value[1], @Value[1]);
+  {$ENDIF}
+  SetStringRaw(Name, Value+#0, REG_SZ);
+end;
+
+procedure TRegistrySettings.SetStrings(Name: FarString; Value: TFarStringDynArray);
+{$IFNDEF UNICODE}
+var
+  I: Integer;
+{$ENDIF}
+begin
+  {$IFNDEF UNICODE}
+  for I:=0 to High(Value) do
+    OemToChar(@Value[I][1], @Value[I][1]);
+  {$ENDIF}
+
+  SetStringRaw(Name, ArrayToNullStrings(Value), REG_MULTI_SZ);
+end;
+
+procedure TRegistrySettings.SetInt(Name: FarString; Value: Integer);
+begin
+  RegSetValueExF(Key, PFarChar(Name), 0, REG_DWORD, @Value, SizeOf(Value));
+end;
+
+function TRegistrySettings.OpenKey(Name: FarString): TSettings;
+var
+  SubKey: HKEY;
+begin
+  SubKey := 0;
+  RegCreateKeyExF(Key, PFarChar(Name), 0, nil, 0, KEY_ALL_ACCESS, nil, SubKey, nil);
+  Result := TRegistrySettings.CreateFrom(SubKey);
+end;
+
+procedure TRegistrySettings.DeleteKey(Name: FarString);
+begin
+  RegDeleteKeyF(Key, PFarChar(Name));
+end;
+
+function TRegistrySettings.ValueExists(Name: FarString): Boolean;
+begin
+  Result := RegQueryValueExF(Key, PFarChar(Name), nil, nil, nil, nil) = ERROR_SUCCESS;
+end;
+
+function TRegistrySettings.KeyExists(Name: FarString): Boolean;
+var
+  SubKey: HKEY;
+begin
+  SubKey := 0;
+  RegOpenKeyExF(Key, PFarChar(Name), 0, KEY_ALL_ACCESS, SubKey);
+  Result := SubKey <> 0;
+  if SubKey<>0 then
+    RegCloseKey(SubKey);
 end;
 
 end.

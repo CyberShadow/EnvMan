@@ -15,105 +15,18 @@ uses
 
 // ****************************************************************************
 
+function CreateSettings: TSettings;
+begin
+  Result := TRegistrySettings.Create('EnvMan');
+end;
+
+function GetPluginString(Name: FarString; Default: FarString = ''): FarString;
 var
-  RegKey: FarString;
-
-function RegGetStringRaw(Key: HKEY; Name: PFarChar; Default: FarString = ''): FarString;
-var
-  R: Integer;
-  Size: Cardinal;
+  Settings: TSettings;
 begin
-  Result := Default;
-
-  Size := 0;
-  R := RegQueryValueExF(Key, Name, nil, nil, nil, @Size);
-  if R<>ERROR_SUCCESS then
-    Exit;
-  
-  SetLength(Result, Size div SizeOf(FarChar));
-  if Size=0 then
-    Exit;
-
-  R := RegQueryValueExF(Key, Name, nil, nil, @Result[1], @Size);
-  if R<>ERROR_SUCCESS then
-    Result := Default;
-end;
-
-function RegGetString(Key: HKEY; Name: PFarChar; Default: FarString = ''): FarString;
-begin
-  Result := PFarChar(RegGetStringRaw(Key, Name, Default {+ #0}));
-  {$IFNDEF UNICODE}
-  CharToOem(PFarChar(Result), PFarChar(Result));
-  {$ENDIF}
-end;
-
-function RegGetStrings(Key: HKEY; Name: PFarChar): TFarStringDynArray;
-{$IFNDEF UNICODE}
-var
-  I: Integer;
-{$ENDIF}
-begin
-  Result := NullStringsToArray(PFarChar(RegGetStringRaw(Key, Name)));
-  {$IFNDEF UNICODE}
-  for I:=0 to High(Result) do
-    CharToOem(PFarChar(Result[I]), PFarChar(Result[I]));
-  {$ENDIF}
-end;
-
-function RegGetInt(Key: HKEY; Name: PFarChar): Integer;
-var
-  Size: Cardinal;
-begin
-  Result := 0;
-  Size := SizeOf(Result);
-  RegQueryValueExF(Key, Name, nil, nil, @Result, @Size);
-end;
-
-procedure RegSetStringRaw(Key: HKEY; Name: PFarChar; Value: FarString; RegType: Cardinal);
-begin
-  RegSetValueExF(Key, Name, 0, RegType, @Value[1], Length(Value) * SizeOf(FarChar));
-end;
-
-procedure RegSetString(Key: HKEY; Name: PFarChar; Value: FarString);
-begin
-  {$IFNDEF UNICODE}
-  OemToChar(@Value[1], @Value[1]);
-  {$ENDIF}
-  RegSetStringRaw(Key, Name, Value+#0, REG_SZ);
-end;
-
-procedure RegSetStrings(Key: HKEY; Name: PFarChar; Value: TFarStringDynArray);
-{$IFNDEF UNICODE}
-var
-  I: Integer;
-{$ENDIF}
-begin
-  {$IFNDEF UNICODE}
-  for I:=0 to High(Value) do
-    OemToChar(@Value[I][1], @Value[I][1]);
-  {$ENDIF}
-  
-  RegSetStringRaw(Key, Name, ArrayToNullStrings(Value), REG_MULTI_SZ);
-end;
-
-procedure RegSetInt(Key: HKEY; Name: PFarChar; Value: Integer);
-begin
-  RegSetValueExF(Key, Name, 0, REG_DWORD, @Value, SizeOf(Value));
-end;
-
-function OpenPluginKey: HKEY;
-begin
-  Result := 0;
-  RegCreateKeyExF(HKEY_CURRENT_USER, PFarChar(RegKey), 0, nil, 0, KEY_ALL_ACCESS, nil, Result, nil);
-end;
-
-function GetPluginString(Name: PFarChar; Default: FarString = ''): FarString;
-var
-  Key: HKEY;
-begin
-  Key := OpenPluginKey;
-  Result := RegGetString(Key, Name, Default);
-  RegCloseKey(Key);
+  Settings := CreateSettings;
+  Result := Settings.GetString(Name, Default);
+  Settings.Free;
 end;
 
 function GetIgnoredVariables: FarString;
@@ -123,17 +36,11 @@ end;
 
 procedure SetPluginString(Name: PFarChar; Value: FarString);
 var
-  Key: HKEY;
+  Settings: TSettings;
 begin
-  Key := OpenPluginKey;
-  RegSetString(Key, Name, Value);
-  RegCloseKey(Key);
-end;
-
-function OpenEntryKey(Index: Integer): HKEY;
-begin
-  Result := 0;
-  RegCreateKeyExF(HKEY_CURRENT_USER, PFarChar(RegKey+'\'+IntToStr(Index)), 0, nil, 0, KEY_ALL_ACCESS, nil, Result, nil);
+  Settings := CreateSettings;
+  Settings.SetString(Name, Value);
+  Settings.Free;
 end;
 
 function GetName(S: FarString): FarString;
@@ -260,31 +167,31 @@ type
 
 function ReadEntries: TEntryDynArray;
 var
-  Key, SubKey: HKEY;
-  R, I: Integer;
+  Settings, EntryKey: TSettings;
+  KeyName: FarString;
+  I: Integer;
 begin
   Result := nil;
-  R := RegCreateKeyExF(HKEY_CURRENT_USER, PFarChar(RegKey), 0, nil, 0, KEY_READ, nil, Key, nil);
-  if R<>ERROR_SUCCESS then
-    Exit;
+  Settings := CreateSettings;
   try
     I := 0;
     repeat
-      R := RegOpenKeyExF(Key, PFarChar(IntToStr(I)), 0, KEY_READ, SubKey);
-      if R<>ERROR_SUCCESS then
+      KeyName := IntToStr(I);
+      if not Settings.KeyExists(KeyName) then
         Exit;
+      EntryKey := Settings.OpenKey(KeyName);
       try
         SetLength(Result, Length(Result)+1);
-        Result[High(Result)].Name := RegGetString(SubKey, nil);
-        Result[High(Result)].Vars := RegGetStrings(SubKey, 'Vars');
-        Result[High(Result)].Enabled := Boolean(RegGetInt(SubKey, 'Enabled'));
+        Result[High(Result)].Name := EntryKey.GetString('');
+        Result[High(Result)].Vars := EntryKey.GetStrings('Vars');
+        Result[High(Result)].Enabled := Boolean(EntryKey.GetInt('Enabled'));
       finally
-        RegCloseKey(SubKey);
+        EntryKey.Free;
       end;
       Inc(I);
     until false;
   finally
-    RegCloseKey(Key);
+    Settings.Free;
   end;
 end;
 
@@ -458,15 +365,24 @@ begin
   end;
 end;
 
+function OpenEntryKey(Index: Integer): TSettings;
+var
+  Settings: TSettings;
+begin
+  Settings := CreateSettings;
+  Result := Settings.OpenKey(IntToStr(Index));
+  Settings.Free;
+end;
+
 procedure SaveEntry(Index: Integer; const Entry: TEntry);
 var
-  Key: HKEY;
+  Key: TSettings;
 begin
   Key := OpenEntryKey(Index);
-  RegSetString(Key, nil, Entry.Name);
-  RegSetStrings(Key, 'Vars', Entry.Vars);
-  RegSetInt(Key, 'Enabled', Ord(Entry.Enabled));
-  RegCloseKey(Key);
+  Key.SetString('', Entry.Name);
+  Key.SetStrings('Vars', Entry.Vars);
+  Key.SetInt('Enabled', Ord(Entry.Enabled));
+  Key.Free;
 end;
 
 function EditEntryAlt(var Entry: TEntry): Boolean; forward;
@@ -619,14 +535,14 @@ var
 
   procedure DeleteEntry(Index: Integer);
   var
-    Key: HKEY;
+    Key: TSettings;
     I: Integer;
   begin
     for I:=Index+1 to High(Entries) do
       SaveEntry(I-1, Entries[I]);
-    Key := OpenPluginKey;
-    RegDeleteKeyF(Key, PFarChar(IntToStr(High(Entries))));
-    RegCloseKey(Key);
+    Key := CreateSettings;
+    Key.DeleteKey(IntToStr(High(Entries)));
+    Key.Free;
   end;
 
   procedure MoveCurrent(Direction: Integer);
@@ -641,7 +557,7 @@ var
   BreakCode: Integer;
   I: Integer;
   Items: array of TFarMenuItem;
-  Key: HKEY;
+  Key: TSettings;
   Env, NewEnv: TFarStringDynArray;
   InitialEntries: TEntryDynArray;
   NewVars, ChangedVars, DeletedVars, AllVars: TFarStringDynArray;
@@ -793,25 +709,25 @@ begin
         if Current >= 0 then
         begin
           Key := OpenEntryKey(Current);
-          RegSetInt(Key, 'Enabled', 1);
+          Key.SetInt('Enabled', 1);
           MoveCurrent(1);
-          RegCloseKey(Key);
+          Key.Free;
         end;
       1: // VK_SUBTRACT
         if Current >= 0 then
         begin
           Key := OpenEntryKey(Current);
-          RegSetInt(Key, 'Enabled', 0);
+          Key.SetInt('Enabled', 0);
           MoveCurrent(1);
-          RegCloseKey(Key);
+          Key.Free;
         end;
       2: // VK_SPACE
         if Current >= 0 then
         begin
           Key := OpenEntryKey(Current);
-          RegSetInt(Key, 'Enabled', 1-RegGetInt(Key, 'Enabled'));
+          Key.SetInt('Enabled', 1-Key.GetInt('Enabled'));
           MoveCurrent(1);
-          RegCloseKey(Key);
+          Key.Free;
         end;
       3: // VK_INSERT
       begin
@@ -909,8 +825,8 @@ begin
         if Current >= 0 then
         begin
           Key := OpenEntryKey(Current);
-          RegSetInt(Key, 'Enabled', 1-RegGetInt(Key, 'Enabled'));
-          RegCloseKey(Key);
+          Key.SetInt('Enabled', 1-Key.GetInt('Enabled'));
+          Key.Free;
         end;
         //Break;
     end;
@@ -1028,12 +944,6 @@ procedure SetStartupInfo(var psi: TPluginStartupInfo); stdcall;
 {$ENDIF}
 begin
   Move(psi, FARAPI, SizeOf(FARAPI));
-  {$IFDEF FAR3}
-  RegKey := 'Software\Far2\Plugins\EnvMan';
-  {$ELSE}
-  RegKey := FARAPI.RootKey + '\EnvMan';
-  {$ENDIF}
-  
   InitialEnvironment := ReadEnvironment;
   Update;
 end;
