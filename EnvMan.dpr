@@ -323,7 +323,7 @@ end;
 
 // ****************************************************************************
 
-function DoConfigure(IgnoredVariables: FarString): Boolean;
+function DoConfigure(IgnoredVariables: FarString): Boolean; overload;
 const
   W = 75;
   H = 7;
@@ -363,6 +363,11 @@ begin
   finally
     Dialog.Free;
   end;
+end;
+
+function DoConfigure: Boolean; overload;
+begin
+  Result := DoConfigure(GetIgnoredVariables);
 end;
 
 function OpenEntryKey(Index: Integer): TSettings;
@@ -563,7 +568,7 @@ var
   NewVars, ChangedVars, DeletedVars, AllVars: TFarStringDynArray;
 const
   {$IFDEF FAR3}
-  BreakKeys: array[0..15] of TFarKey = (
+  BreakKeys: array[0..16] of TFarKey = (
     (VirtualKeyCode: VK_ADD     ; ControlKeyState: 0),
     (VirtualKeyCode: VK_SUBTRACT; ControlKeyState: 0),
     (VirtualKeyCode: VK_SPACE   ; ControlKeyState: 0),
@@ -579,6 +584,7 @@ const
     (VirtualKeyCode: VK_DELETE  ; ControlKeyState: SHIFT_PRESSED),
     (VirtualKeyCode: VK_INSERT  ; ControlKeyState: RIGHT_CTRL_PRESSED),
     (VirtualKeyCode: VK_INSERT  ; ControlKeyState: SHIFT_PRESSED),
+    (VirtualKeyCode: VK_F2      ; ControlKeyState: 0),
     (VirtualKeyCode: 0          ; ControlKeyState: 0)
   );
   {$ELSE}
@@ -590,7 +596,7 @@ const
   VK_SHIFTDEL = VK_DELETE or (PKF_SHIFT   shl 16);
   VK_CTRLINS  = VK_INSERT or (PKF_CONTROL shl 16);
   VK_SHIFTINS = VK_INSERT or (PKF_SHIFT   shl 16);
-  BreakKeys: array[0..15] of Integer = (
+  BreakKeys: array[0..16] of Integer = (
     VK_ADD,
     VK_SUBTRACT,
     VK_SPACE,
@@ -606,6 +612,7 @@ const
     VK_SHIFTDEL,
     VK_CTRLINS,
     VK_SHIFTINS,
+    VK_F2,
     0
   );
   {$ENDIF}
@@ -820,6 +827,10 @@ begin
         if Current < 0 then
           Current := 0;
         InsertEntry(Current, TextToEntry(Clipboard.AsText));
+      end;
+      15: // VK_F2
+      begin
+        DoConfigure;
       end;
       else // VK_RETURN / hotkey
         if Current >= 0 then
@@ -1061,7 +1072,7 @@ function ConfigureW(Item: Integer): Integer; stdcall;
 function Configure(Item: Integer): Integer; stdcall;
 {$ENDIF}
 begin
-  Result := Integer(DoConfigure(GetIgnoredVariables));
+  Result := Integer(DoConfigure);
 end;
 
 // ****************************************************************************
